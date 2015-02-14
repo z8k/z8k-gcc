@@ -23,7 +23,12 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 /* Names to predefine in the preprocessor for this target machine.  */
 
-#define CPP_PREDEFINES "-D__Z8000__ -Dz8000"
+#define TARGET_CPU_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define_std ("z8000");		\
+    }						\
+  while (0)
 
 /* Write out defines which depend on the compilation options */
 
@@ -56,96 +61,6 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 /* Run-time compilation parameters selecting different hardware subsets.  */
 int target_flags;
 
-/* This means that the target is a Z8001, so we use `big' mode
-   addressing */
-#define TARGET_BIG_BIT 1
-#define TARGET_BIG	(target_flags & TARGET_BIG_BIT)
-
-/* This means that the target is a z8002, so we use `small' mode
-   addressing */
-#define TARGET_SMALL	(!TARGET_BIG)
-
-/* This means that the target is a z8001, and we insert extra to allow
-   objects larger than 64k */
-#define TARGET_HUGE_BIT	2
-#define TARGET_HUGE 	(target_flags & TARGET_HUGE_BIT)
-
-/* This makes ints 32 bits long by default rather than 16 bits */
-#define TARGET_INT32_BIT 4
-#define TARGET_INT32 	(target_flags & TARGET_INT32_BIT)
-
-
-
-/* For debugging: print out how big the compiler thinks each
-   instruction is */
-#define TARGET_ISIZE_BIT 8
-#define TARGET_ISIZE	(target_flags & TARGET_ISIZE_BIT)
-
-/* output YASM syntax assembler rather than gas syntax */
-#define TARGET_YASM_BIT  16
-#define TARGET_YASM 	(target_flags & TARGET_YASM_BIT)
-
-/* pass args in registers rather than on the stack */
-#define TARGET_REGPARMS_BIT 32
-#define TARGET_REGPARMS (target_flags & TARGET_REGPARMS_BIT)
-
-
-/* print .line for each line */
-#define TARGET_LINE_BIT 64
-#define TARGET_LINE (target_flags & TARGET_LINE_BIT)
-
-/* print source for each line */
-#define TARGET_SOURCE_BIT 128
-#define TARGET_SOURCE (target_flags & TARGET_SOURCE_BIT)
-
-/* print defs for each line */
-#define TARGET_DEFS_BIT 256
-#define TARGET_DEFS (target_flags & TARGET_DEFS_BIT)
-
-
-/* print defs for each line */
-#define TARGET_LDIR_BIT 512
-#define TARGET_LDIR (target_flags & TARGET_LDIR_BIT)
-
-/* Nonzero to align doubles on 64 bit boundaries */
-#define TARGET_ALIGN_DOUBLE_BIT 1024
-#define TARGET_ALIGN_DOUBLE (target_flags & TARGET_ALIGN_DOUBLE_BIT)
-
-
-/* Nonzero to generate section pic code */
-#define TARGET_PIC_BIT 2048
-#define TARGET_PIC (target_flags & TARGET_PIC_BIT)
-
-/* print defs for each line */
-#define TARGET_COMBINE_BIT 4096
-#define TARGET_COMBINE (target_flags & TARGET_COMBINE_BIT)
-
-/* chose fast code over small code */
-#define TARGET_FAST_BIT 8192
-#define TARGET_FAST (target_flags & TARGET_FAST_BIT)
-
-/* enable djnz insns */
-#define TARGET_DJNZ_BIT (1<<14)
-#define TARGET_DJNZ (target_flags & TARGET_DJNZ_BIT)
-
-
-
-/* enable byte aligned structures */
-#define TARGET_STRUCT_BYTE_ALIGN_BIT (1<<15)
-#define TARGET_STRUCT_BYTE_ALIGN (target_flags & TARGET_STRUCT_BYTE_ALIGN_BIT)
-
-/* enable 64bit long longs */
-#define TARGET_TYPE64_BIT  	(1<<17)
-#define TARGET_TYPE64		(target_flags & TARGET_TYPE64_BIT)
-
-/* enable 64bit doubles */
-#define TARGET_TYPED64_BIT  	(1<<18)
-#define TARGET_TYPED64		(target_flags & TARGET_TYPED64_BIT)
-
-
-#define TARGET_PCCBITF_BIT  	(1<<19)
-#define TARGET_PCCBITF		(target_flags & TARGET_PCCBITF_BIT)
-
 #define TARGET_STD_FRAME_BIT  	(1<<20)
 #define TARGET_STD_FRAME	(target_flags & TARGET_STD_FRAME_BIT)
 
@@ -156,41 +71,6 @@ int target_flags;
 #define TARGET_STD		(target_flags & TARGET_STD_BIT)
 
 
-/* Macro to define tables used to set the flags.
-   This is a list in braces of pairs in braces,
-   each pair being { "NAME", VALUE }
-   where VALUE is the bits to set or minus the bits to clear.
-   An empty string NAME is used to identify the default VALUE.  */
-#define TARGET_SWITCHES  			\
-{ { "sb",        TARGET_STRUCT_BYTE_ALIGN_BIT}, \
-  { "nosb",     -TARGET_STRUCT_BYTE_ALIGN_BIT}, \
-  { "pb",        TARGET_PCCBITF_BIT},           \
-  { "nopb",     -TARGET_PCCBITF_BIT},           \
-  { "int32", 	 TARGET_INT32_BIT},		\
-  { "t64", 	 TARGET_TYPE64_BIT},		\
-  { "d64", 	 TARGET_TYPED64_BIT},		\
-  { "int16",    -TARGET_INT32_BIT},		\
-  { "z8001", 	 TARGET_BIG_BIT},		\
-  { "z8002",    -TARGET_BIG_BIT},		\
-  { "huge",	 TARGET_HUGE_BIT},		\
-  { "size",	 TARGET_ISIZE_BIT},		\
-  { "yasm",	 TARGET_YASM_BIT},		\
-  { "line",	 TARGET_LINE_BIT},		\
-  { "source",	 TARGET_SOURCE_BIT},		\
-  { "defs",	 TARGET_DEFS_BIT},		\
-  { "noyasm",	-TARGET_YASM_BIT},		\
-  { "regparms",  TARGET_REGPARMS_BIT},     	\
-  { "ldir",      TARGET_LDIR_BIT},     		\
-  { "combine",   TARGET_COMBINE_BIT},     	\
-  { "fast",      TARGET_FAST_BIT},     		\
-  { "pic",       TARGET_PIC_BIT},     		\
-  { "noldir",   -TARGET_LDIR_BIT},     		\
-  { "djnz",      TARGET_DJNZ_BIT},     		\
-  { "pushargs", -TARGET_REGPARMS_BIT},     	\
-  { "stdfp",     TARGET_STD_FRAME_BIT},     	\
-  { "stdret",    TARGET_STD_RET_BIT},     	\
-  { "std",  	 TARGET_STD_BIT},     		\
-  { "", 	 TARGET_DEFAULT}}
 
 
 #define TARGET_DEFAULT \

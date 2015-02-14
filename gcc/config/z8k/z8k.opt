@@ -1,0 +1,79 @@
+; Options for the Z8000 port of the compiler.
+
+; This file is part of GCC.
+;
+; GCC is free software; you can redistribute it and/or modify it under
+; the terms of the GNU General Public License as published by the Free
+; Software Foundation; either version 2, or (at your option) any later
+; version.
+;
+; GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+; WARRANTY; without even the implied warranty of MERCHANTABILITY or
+; FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+; for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with GCC; see the file COPYING.  If not see
+; <http://www.gnu.org/licenses/>.
+
+
+mz8001
+Target Report RejectNegative Mask(BIG)
+Generate code for a z8001
+
+mz8002
+Target Report RejectNegative InverseMask(BIG, SMALL) Negative(mhuge)
+Generate code for a z8002
+
+mhuge
+Target Report RejectNegative Mask(HUGE) Negative(mz8002)
+Generate code to handle objects larger than 64KB. Implies -mz8001
+
+msb
+Target Report Mask(STRUCT_BYTE_ALIGN)
+Enable byte-aligned structures
+
+mint16
+Common Report InverseMask(INT32, INT16)
+Use 16 bit int
+
+mint32
+Common Report Mask(INT32)
+Use 32 bit int
+
+mt64
+Target Report Mask(TYPE64)
+Use 64 bit long long
+
+md64
+Target Report Mask(TYPED64)
+Use 64 bit doubles
+
+mfast
+Target Report Mask(FAST)
+Choose fast code over small code
+
+mregparms
+Target Report Mask(REGPARMS)
+Pass args in registers rather than on the stack
+
+mpushargs
+Target Report Alias(mregparms) NegativeAlias
+Pass args on the stack
+
+mpic
+Target Report Mask(PIC)
+Generate position independent code
+
+mldir
+Target Report Mask(LDIR)
+Enable ldir instructions
+
+mstdfp
+Target Report Mask(STD_FRAME)
+
+mstdret
+Target Report Mask(STD_RET)
+
+mstd
+Target Report Mask(STD)
