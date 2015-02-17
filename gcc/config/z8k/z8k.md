@@ -33,6 +33,10 @@
 ;; R = x
 ;; S = ba bx
 
+(include "constraints.md")
+(include "predicates.md")
+
+
 (define_attr "type" "branch,foo,def,djnz,invisible,return" 
   (const_string "def"))
 
@@ -163,7 +167,7 @@
 	    operands[0] = force_reg (HImode, operands[0]);
 	  }
       }
-    else if (!r_operand (operands[0]))
+    else if (!r_operand (operands[0], HImode)) /* XXX */
       {
 	operands[0] = force_reg (HImode, operands[0]);
       }
@@ -194,7 +198,7 @@
 	    operands[0] = force_reg (QImode, operands[0]);
 	  }
       }
-    else if (!r_operand (operands[0]))
+    else if (!r_operand (operands[0], QImode))  /* XXX */
       {
 	operands[0] = force_reg (QImode, operands[0]);
    }")
@@ -506,7 +510,7 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   ""
   "
 { 
- operands[2] = gen_rtx (REG, QImode, REGNO(operands[2]));
+ operands[2] = gen_rtx_REG (QImode, REGNO(operands[2]));
   emit_insn (gen_movqiin_using_tmp(operands[0], operands[1], operands[2]));
   DONE;
 }")
@@ -519,7 +523,7 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   "
 { 
 /* Want to treat temp as a qi */
- operands[2] = gen_rtx(REG, QImode, REGNO(operands[2]));
+ operands[2] = gen_rtx_REG (QImode, REGNO(operands[2]));
   emit_insn (gen_movqiout_using_tmp(operands[0], operands[1], operands[2]));
   DONE;
 }")
@@ -908,9 +912,8 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
 	(plus:HI (match_operand:HI 1 "r_ir_da_x_operand" "%0,0,0")
 		 (match_operand:HI 2 "r_im_operand" "J,K,ri")))]
   "r_operand (operands[0], HImode) || r_operand (operands[1], HImode)
-   || (GET_CODE (operands[2]) == CONST_INT
-       && (CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
-	   || CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'K')))"
+   || (satisfies_constraint_J (operands[2])
+      || satisfies_constraint_K (operands[2]))"
   "@
 	inc	%H0,%H2
 	dec	%H0,%N2
@@ -1158,8 +1161,8 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   if (GET_CODE (operands[2]) != CONST_INT
       || ((INTVAL (operands[2]) & 0x8000) != 0x0000))
     FAIL;
-  operands[4] = gen_rtx (REG, SImode, 0);
-  operands[5] = gen_rtx (REG, SImode, 2);
+  operands[4] = gen_rtx_REG (SImode, 0);
+  operands[5] = gen_rtx_REG (SImode, 2);
 }")
 
 
@@ -1292,7 +1295,7 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   "
 {
   if (GET_CODE (operands[2]) != CONST_INT)
-    operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+    operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
 }")
 
 
@@ -1323,7 +1326,7 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   ""
   "{
     if (GET_CODE (operands[2]) != CONST_INT)
-      operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+      operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
    }")
 
 ;; left
@@ -1442,7 +1445,7 @@ if (GET_CODE (operands[2]) != CONST_INT
   "
 {
   if (GET_CODE (operands[2]) != CONST_INT)
-    operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+    operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
 }")
 
 
@@ -1465,7 +1468,7 @@ if (GET_CODE (operands[2]) != CONST_INT
   ""
   "{
     if (GET_CODE (operands[2]) != CONST_INT)
-      operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+      operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
    }")
 
 ;; left
@@ -1512,7 +1515,7 @@ if (GET_CODE (operands[2]) != CONST_INT
   "
   {
   if (GET_CODE (operands[2]) != CONST_INT)
-    operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+    operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
   }")
 
 
@@ -1541,7 +1544,7 @@ if (GET_CODE (operands[2]) != CONST_INT
   ""
   "{
     if (GET_CODE (operands[2]) != CONST_INT)
-      operands[2] = gen_rtx (NEG, HImode, negate_rtx (HImode, operands[2]));
+      operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
    }")
 
 ;; left
@@ -1897,7 +1900,7 @@ if (GET_CODE (operands[2]) != CONST_INT
 {
   int i;
 
-  emit_call_insn (gen_call (operands[0], const0_rtx, NULL, const0_rtx));
+  emit_call_insn (GEN_CALL (operands[0], const0_rtx, NULL, const0_rtx));
 
   for (i = 0; i < XVECLEN (operands[2], 0); i++)
     {
@@ -2044,7 +2047,7 @@ if (GET_CODE (operands[2]) != CONST_INT
    operands[1] = force_reg (HImode, XEXP (operands[1], 0));
    operands[4] = gen_reg_rtx (HImode);
    operands[5] = gen_reg_rtx (HImode);
-   operands[6] = gen_rtx(REG, QImode, 0);
+   operands[6] = gen_rtx_REG (QImode, 0);
    }")
 
 
@@ -2172,11 +2175,11 @@ if (GET_CODE (operands[2]) != CONST_INT
   if (val) 
     {
       operands[1] = GEN_INT(val);
-      if (CONST_OK_FOR_LETTER_P(val,'J'))
+      if (satisfies_constraint_J (operands[1]))
 	{
 	  return \"inc	%H0,%H1 !p5\";
 	}
-      else if (CONST_OK_FOR_LETTER_P(val,'K'))
+      else if (satisfies_constraint_K (operands[1]))
 	{
 	  return \"dec	%H0,%N1 !p5\";
 	}
@@ -2201,11 +2204,11 @@ if (GET_CODE (operands[2]) != CONST_INT
   if (val) 
     {
       operands[1] = GEN_INT(val);
-      if (CONST_OK_FOR_LETTER_P(val,'J'))
+      if (satisfies_constraint_J (operands[1]))
 	{
 	  return \"inc	%I0,%H1 !p5\";
 	}
-      else if (CONST_OK_FOR_LETTER_P(val,'K'))
+      else if (satisfies_constraint_K (operands[1]))
 	{
 	  return \"dec	%I0,%N1 !p5\";
 	}
@@ -2227,7 +2230,7 @@ else return \"! p5\";
 		      (label_ref (match_operand 1 "" ""))
 		      (pc)))
    (set (match_dup 0)
-	(plus:SI (match_dup 0) (const_int -1)))]
+	(plus:HI (match_dup 0) (const_int -1)))] /* XXX HI was SI */
   "TARGET_DJNZ"
   "*
   if (get_attr_length (insn) == 2 && GET_CODE (operands[0]) == REG)
