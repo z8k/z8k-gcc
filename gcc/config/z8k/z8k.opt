@@ -69,6 +69,10 @@ mldir
 Target Report Mask(LDIR)
 Enable ldir instructions
 
+mdjnz
+Target Report Mask(DJNZ)
+Enable djnz instructions
+
 mstdfp
 Target Report Mask(STD_FRAME)
 
@@ -77,3 +81,18 @@ Target Report Mask(STD_RET)
 
 mstd
 Target Report Mask(STD)
+
+myasm
+Target Report Mask(YASM)
+
+mpb
+Target Report Mask(PCCBITF)
+
+msize
+Target Report Mask(ISIZE)
+
+mdefs
+Target Report Mask(DEFS)
+
+msource
+Target Report Mask(SOURCE)
