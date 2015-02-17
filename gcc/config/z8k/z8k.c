@@ -19,9 +19,10 @@
    along with GNU CC; see the file COPYING.  If not, write to
    the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
-#include <stdio.h>
-#include <string.h>
 #include "config.h"
+#include "system.h"
+#include "coretypes.h"
+#include "tm.h"
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -29,14 +30,38 @@
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-flags.h"
+#include "function.h"
 #include "output.h"
 #include "insn-attr.h"
-#include "tree.h"
 #include "flags.h"
+#include "flag-types.h"
+#include "recog.h"
+#include "tree.h"
+#include "expr.h"
+#include "diagnostic-core.h"
+#include "tm_p.h"
+#include "target.h"
+#include "target-def.h"
+#include "df.h"
+#include "opts.h"
+#include "z8k-protos.h"
+
+void z8k_asm_globalize_label (FILE *, const char *);
+void z8k_asm_trampoline_template (FILE *);
+void z8k_trampoline_init (rtx, tree, rtx);
+bool z8k_legitimate_constant_p (enum machine_mode, rtx);
+rtx z8k_legitimize_address (rtx, rtx, enum machine_mode);
+int z8k_address_cost (rtx, enum machine_mode, addr_space_t, bool);
+rtx z8k_function_arg (cumulative_args_t, enum machine_mode, const_tree, bool);
+void z8k_function_arg_advance (cumulative_args_t, enum machine_mode, const_tree, bool);
+bool z8k_can_eliminate (const int, const int);
+bool z8k_mode_dependent_address (const_rtx, addr_space_t);
+
 
 /* Modes ok for regs, used in tm.h for HARD_REGNO_MODE_OK */
 int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
 
+int saved_reg_on_stack_hack;
 
 /* We can change which reg has the sp or fp, using this
    to indirect */
@@ -55,24 +80,23 @@ static int rev_renumber[FIRST_PSEUDO_REGISTER];
 int arg_nregs;
 
 /* Regs  for arg passing */
-int arg_regs[FIRST_PSEUDO_REGISTER];
+char arg_regs[FIRST_PSEUDO_REGISTER];
 
 /* And their order */
 int arg_regs_order[FIRST_PSEUDO_REGISTER];
 
-extern int frame_pointer_needed;
-#define pic_reg    (gen_rtx(REG, HImode, 13))
+#define pic_reg    (gen_rtx_REG (HImode, 13))
 
 struct reg_info_struct
   {
-    char *mode_name[MAX_MACHINE_MODE];
+    const char *mode_name[MAX_MACHINE_MODE];
   };
 
 struct reg_info_struct rinfo[FIRST_PSEUDO_REGISTER];
 
 #define regname(x,mode)  (rinfo[renumber[x]].mode_name[mode])
 
-char *pointer_reg[FIRST_PSEUDO_REGISTER];
+const char *pointer_reg[FIRST_PSEUDO_REGISTER];
 
 #define STACK_REGISTER(x) \
   ((x)==STACK_POINTER_REGNUM || (frame_pointer_needed && (x) == FRAME_POINTER_REGNUM))
@@ -97,10 +121,10 @@ struct extern_list
     char *name;
   }
  *extern_head = 0;
-
+
+
 rtx 
-getreg (x)
-     rtx x;
+getreg (rtx x)
 {
   if (GET_CODE (x) == TRUNCATE)
     x = XEXP (x, 0);
@@ -112,9 +136,7 @@ getreg (x)
 /* Print the operand address represented by the rtx addr */
 
 void
-print_operand_address (file, addr)
-     FILE *file;
-     register rtx addr;
+print_operand_address (FILE *file, rtx addr)
 {
   rtx lhs, rhs;
 
@@ -221,8 +243,7 @@ retry:;
 
 
 void 
-maybe_need_resflg (cond)
-     rtx cond;
+maybe_need_resflg (rtx cond)
 {
   int code = GET_CODE (cond);
   if (cc_prev_status.flags & CC_NO_OVERFLOW
@@ -234,9 +255,8 @@ maybe_need_resflg (cond)
 }
 
 /* Turn a condition code into a string */
-static char *
-cond_name_x (code)
-     int code;
+static const char *
+cond_name_x (int code)
 {
   if (cc_prev_status.flags & CC_NO_OVERFLOW)
     {
@@ -280,11 +300,7 @@ cond_name_x (code)
 /* print either an inc or an add depending upon the size of the value */
 
 static void
-incordec (file, n1, n2, size)
-     FILE *file;
-     char *n1;
-     char *n2;
-     int size;
+incordec (FILE *file, char *n1, char *n2, int size)
 {
   if (size)
     {
@@ -299,20 +315,19 @@ incordec (file, n1, n2, size)
 /* return 1 if the register needs to be saved on function entry */
 
 static int
-need (regno)
-     int regno;
+need (int regno)
 {
   if (TARGET_BIG && regno == STACK_POINTER_REGNUM)
     return 0;
 
-  return (regs_ever_live[regno]
+  return (df_regs_ever_live_p (regno)
 	  && !call_used_regs[regno]
 	  && regno < STACK_POINTER_REGNUM
 	  && !((regno == FRAME_POINTER_REGNUM)
 	   || (regno == FRAME_POINTER_REGNUM + 1) && frame_pointer_needed));
 
 }
-
+
 
 
 
@@ -320,8 +335,7 @@ need (regno)
    address calculation */
 
 static int 
-address (op)
-     rtx op;
+address (rtx op)
 {
   if (GET_CODE (op) == CONST)
     op = XEXP (op, 0);
@@ -385,10 +399,7 @@ Use B & T for parts of DI regs
 
 
 void 
-print_operand (file, x, code)
-     FILE *file;
-     rtx x;
-     int code;
+print_operand (FILE *file, rtx x, int code)
 {
   if (code == '^')
     {
@@ -467,13 +478,13 @@ print_operand (file, x, code)
 	      fprintf (file, "#%d", exact_log2 (~(INTVAL (x) | ~0xffff)));
 	      break;
 	    case 'H':
-	      fprintf (file, "#%d", INTVAL (x) & 0xffff);
+	      fprintf (file, "#%d", (int) (INTVAL (x) & 0xffff));
 	      break;
 	    case 'I':
-	      fprintf (file, "#%d", (INTVAL (x) >> 16) & 0xffff);
+	      fprintf (file, "#%d", (int) ((INTVAL (x) >> 16) & 0xffff));
 	      break;
 	    case 'N':
-	      fprintf (file, "#%d", -INTVAL (x));
+	      fprintf (file, "#%d", (int) (-INTVAL (x)));
 	      break;
 	    case 'B':
 	      {
@@ -485,11 +496,11 @@ print_operand (file, x, code)
 		     HOST_WIDE_INT is 32 bits long this is no error */
 		  val >>= 32; 
 		}
-		fprintf (file, "#%d", val);
+		fprintf (file, "#%d", (int) val);
 	      }
 	      break;
 	    default:
-	      fprintf (file, "#%d", INTVAL (x) & 0xffffffff);
+	      fprintf (file, "#%d", (int) (INTVAL (x) & 0xffffffff));
 	      break;
 	    }
 	}
@@ -497,11 +508,11 @@ print_operand (file, x, code)
 	{
 	  if (code == 'I')
 	    {
-	      x = adj_offsettable_operand (x, 2);
+	      x = adjust_address (x, SImode, 2); /* XXX */
 	    }
 	  else if (code == 'T')
 	    {
-	      x = adj_offsettable_operand (x, 4);
+	      x = adjust_address (x, SImode, 4); /* XXX */
 	    }
 
 	  output_address (XEXP (x, 0));
@@ -553,10 +564,11 @@ print_operand (file, x, code)
 	}
       else if (GET_CODE (x) == CONST_DOUBLE)
 	{
-	  double d;
+	  long val;
+	  REAL_VALUE_TYPE d;
 	  REAL_VALUE_FROM_CONST_DOUBLE (d, x);
-	  fprintf (file, "#");
-	  ASM_OUTPUT_FLOAT (file, d);
+	  REAL_VALUE_TO_TARGET_SINGLE (d, val);
+	  fprintf (file, "0x%lx", val);
 	}
       else
 	{
@@ -573,12 +585,7 @@ print_operand (file, x, code)
 
 static
 int
-fill_from_options (value, def, string, into, order)
-     int value;
-     char *def;
-     char *string;
-     char *into;
-     int *order;
+fill_from_options (int value, char *def, char *string, char *into, int *order)
 {
   int regno;
   int n = 0;
@@ -627,9 +634,6 @@ fill_from_options (value, def, string, into, order)
     }
   return n;
 }
-extern enum debug_info_type write_symbols;
-extern enum debug_info_level debug_info_level;
-extern int flag_caller_saves;
 
 void
 override_options ()
@@ -642,17 +646,13 @@ override_options ()
 
   if (TARGET_STD)
     {
-      target_flags |= TARGET_STD_RET_BIT | TARGET_STD_FRAME_BIT;
-      target_flags &= ~TARGET_REGPARMS_BIT;
+  /*    target_flags |= TARGET_STD_RET_BIT | TARGET_STD_FRAME_BIT; */
+   /*   target_flags &= ~TARGET_REGPARMS_BIT; */
     }
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     renumber[i] = i;
 
-  if (TARGET_BIG)
-    pmode = PSImode;
-  else
-    pmode = HImode;
   if (TARGET_STD_FRAME)
     flag_omit_frame_pointer = 0;
 
@@ -667,18 +667,18 @@ override_options ()
 	   mode_index++)
 	{
 	  int bsize = GET_MODE_UNIT_SIZE ((enum machine_mode) mode_index);
-	  int or;
+	  int r;
 
 	  if (bsize > 8)
-	    or = 0;
+	    r = 0;
 	  else if (bsize == 8 && (i & 1))
-	    or = 0; 
+	    r = 0; 
 	  else if (bsize == 4 && (i & 1))
-	    or = 0;
+	    r = 0;
 	  else
-	    or = 1;
+	    r = 1;
 
-	  hard_regno_mode_ok[i] |= or << mode_index;
+	  hard_regno_mode_ok[i] |= r << mode_index;
 	}
     }
 
@@ -689,24 +689,24 @@ override_options ()
   /* except for ones which are explicitly mention */
   if (TARGET_BIG)
     {
-      fill_from_options (0, "r8,r9,r10,r11,r12,r13", call_used_option, call_used_regs, 0);
+      fill_from_options (0, "r8,r9,r10,r11,r12,r13", NULL, call_used_regs, 0);
     }
   else
     {
-      fill_from_options (0, "r8,r9,r10,r11,r12,r13,r14", call_used_option, call_used_regs, 0);
+      fill_from_options (0, "r8,r9,r10,r11,r12,r13,r14", NULL, call_used_regs, 0);
     }
 
 
-  arg_nregs = fill_from_options (1, ARG_REGS, args_in_option,
+  arg_nregs = fill_from_options (1, ARG_REGS, NULL,
 				 arg_regs,
 				 arg_regs_order);
 
-  if (fakes_option)
+/*  if (fakes_option)
     {
       nfakes = atoi (fakes_option);
     }
   else
-    nfakes = 0;
+*/    nfakes = 0;
 
   /* Make fixed those which aren't going to be fake */
   for (j = 0, i = STACK_POINTER_REGNUM + 1;
@@ -729,18 +729,19 @@ override_options ()
   /* Fill in the ok modes */
 
   /* Work out the names of the registers */
-  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+/*  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
 
-      regname (i, QImode) = strdup ("     ");
+      regname (i, QImode) = xstrdup ("     ");
       sprintf (regname (i, QImode), "*QI%d", i);
-      regname (i, HImode) = strdup ("     ");
+      regname (i, HImode) = xstrdup ("     ");
       sprintf (regname (i, HImode), "*HI%d", i);
-      regname (i, SImode) = strdup ("     ");
+      regname (i, SImode) = xstrdup ("     ");
       sprintf (regname (i, SImode), "*SI%d", i);
-      regname (i, DImode) = strdup ("     ");
+      regname (i, DImode) = xstrdup ("     ");
       sprintf (regname (i, DImode), "*DI%d", i);
     }
+*/
 
   regname (0, QImode) = "rl0";
   regname (1, QImode) = "rl1";
@@ -831,18 +832,10 @@ override_options ()
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     pointer_reg[i] = regname (i, Pmode);
 
-  if (TARGET_DEFS || TARGET_SOURCE || TARGET_LINE)
-    {
-      write_symbols = SDB_DEBUG;
-      debug_info_level = DINFO_LEVEL_NORMAL;
-    }
-
   if (TARGET_PIC)
     {
       fixed_regs[13] = 1;
     }
-  flag_force_mem = 0;
-  flag_caller_saves = 0;
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     rev_renumber[renumber[i]] = i;
@@ -860,15 +853,12 @@ override_options ()
 
 
 rtx
-z8k_function_arg (cum, mode, type, named)
-     int cum;
-     enum machine_mode mode;
-     tree type;
-     int named;
+z8k_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
+		  const_tree type, bool named)
 {
-  int t;
   int nregs;
   int rn;
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   enum machine_mode rmode = ((mode == BLKmode) ? TYPE_MODE (type) : mode);
 
   if (mode == BLKmode || mode == VOIDmode)
@@ -897,7 +887,7 @@ z8k_function_arg (cum, mode, type, named)
   /* Move down till we have used enough regs and
      we're aligned */
 
-  rn = cum - (nregs - 1);
+  rn = *cum - (nregs - 1);
   while (rn >= 2
 	 && !HARD_REGNO_MODE_OK (rn, rmode))
     {
@@ -907,7 +897,7 @@ z8k_function_arg (cum, mode, type, named)
 
   if (rn < 2 || rn > 7)
     return 0;
-  return gen_rtx (REG, rmode, rn);
+  return gen_rtx_REG (rmode, rn);
 }
 
 /* return 1 if there isn't anything tricky to do */
@@ -925,7 +915,7 @@ null_epilogue ()
     return 0;
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
-      if (regs_ever_live[i] && !call_used_regs[i])
+      if (df_regs_ever_live_p (i) && !call_used_regs[i])
 	return 0;
     }
 
@@ -933,24 +923,19 @@ null_epilogue ()
 }
 
 struct rtx_def *
-z8k_builtin_saveregs (arglist)
-     tree arglist;
+z8k_builtin_saveregs (tree arglist)
 {
   int i;
 
   for (i = 0; i < arg_nregs; i++)
     {
-      emit_insn (gen_rtx (USE, VOIDmode, gen_rtx (REG, HImode, arg_regs_order[i])));
+      emit_insn (gen_rtx_USE (VOIDmode, gen_rtx_REG (HImode, arg_regs_order[i])));
     }
   return 0;
 }
 
 void
-asm_output_local (file, name, size, rounded)
-     FILE *file;
-     char *name;
-     int size;
-     int rounded;
+asm_output_local (FILE *file, const char *name, int size, int rounded)
 {
   if (TARGET_YASM)
     {
@@ -958,26 +943,22 @@ asm_output_local (file, name, size, rounded)
       TREE_ASM_WRITTEN (name_tree) = 1;
     }
 
-  data_section ();
+  switch_to_section (data_section);
   assemble_name (file, name);
   fprintf (file, ":\n\tblock\t%u\n", rounded);
 }
 
 void
-asm_output_common (file, name, size, rounded)
-     FILE *file;
-     char *name;
-     int size;
-     int rounded;
+asm_output_common (FILE *file, const char *name, int size, int rounded)
 {
   if (TARGET_YASM)
     {
-      data_section();
+      switch_to_section (data_section);
       if (size > 1)
       {
           ASM_OUTPUT_ALIGN (file, 1);
       }
-      ASM_GLOBALIZE_LABEL (file, name);
+      TARGET_ASM_GLOBALIZE_LABEL (file, name);
       ASM_OUTPUT_LOCAL (file, name, size, rounded);
     }
   else
@@ -989,9 +970,7 @@ asm_output_common (file, name, size, rounded)
 }
 
 void
-asm_output_name (file, name)
-     FILE *file;
-     char *name;
+asm_output_name (FILE *file, const char *name)
 {
   if (TARGET_YASM)
     {
@@ -1011,9 +990,7 @@ asm_output_name (file, name)
 */
 extern rtx copy_to_mode_reg ();
 rtx
-simple (mode, operand)
-     enum machine_mode mode;
-     rtx operand;
+simple (enum machine_mode mode, rtx operand)
 {
 
   if (mode == DFmode
@@ -1025,20 +1002,16 @@ simple (mode, operand)
       rtx x = XEXP (operand, 0);
       rtx t1 = XEXP (x, 0);
       rtx t2 = copy_to_mode_reg (Pmode, XEXP (x, 1));
-      emit_insn (gen_rtx (SET, VOIDmode, t2,
-			  gen_rtx (PLUS, Pmode, t2, t1)));
-      return gen_rtx (MEM, mode, t2);
+      emit_insn (gen_rtx_SET (VOIDmode, t2,
+			  gen_rtx_PLUS (Pmode, t2, t1)));
+      return gen_rtx_MEM (mode, t2);
     }
 
   return operand;
 }
 
 int
-emit_move (operands, mode, extra)
-     rtx operands[];
-     enum machine_mode mode;
-     int extra;
-
+emit_move (rtx operands[], enum machine_mode mode, int extra)
 {
   extern int reload_in_progress;
   rtx operand0 = operands[0];
@@ -1088,8 +1061,8 @@ emit_move (operands, mode, extra)
   if (need_copy)
     {
       rtx temp = gen_reg_rtx (mode);
-      emit_insn (gen_rtx (SET, VOIDmode, temp, operand1));
-      emit_insn (gen_rtx (SET, VOIDmode, operand0, temp));
+      emit_insn (gen_rtx_SET (VOIDmode, temp, operand1));
+      emit_insn (gen_rtx_SET (VOIDmode, operand0, temp));
       return 1;
     }
   operands[0] = operand0;
@@ -1097,79 +1070,9 @@ emit_move (operands, mode, extra)
   return 0;
 }
 
-int
-r_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (BADSUBREG (op))
-    return 0;
-  return register_operand (op, mode);
-}
 
 int
-ir_operand_s (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (mode != GET_MODE (op))
-    return 0;
-  if (BADSUBREG (op))
-    return 0;
-  return IR_P (op);
-}
-
-int
-ir_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return ir_operand_s (op, mode);
-}
-
-int
-da_operand_s (op, mode, strict)
-     rtx op;
-     enum machine_mode mode;
-     int strict;
-{
-  if (mode != GET_MODE (op))
-    return 0;
-  if (GET_CODE (op) == SUBREG)
-    op = SUBREG_REG (op);
-
-  return DA_P (op);
-}
-
-int
-da_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return da_operand_s (op, mode, reload_in_progress);
-}
-
-/*  16 bit Reg  + pointer sized bit index*/
-
-x_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (BADSUBREG (op))
-    return 0;
-  if (mode != GET_MODE (op))
-    return 0;
-  if (GET_CODE (op) == SUBREG)
-    op = SUBREG_REG (op);
-
-  return X_P (op);
-}
-
-
-int
-find_reg (op, strict)
-     rtx op;
-     int strict;
+find_reg (rtx op, int strict)
 {
   int rn = REGNO (op);
   if (strict && reg_renumber == 0)
@@ -1179,9 +1082,8 @@ find_reg (op, strict)
   return rn;
 }
 
-ok_for_base (op, strict)
-     rtx op;
-     int strict;
+int
+ok_for_base (rtx op, int strict)
 {
   int rn;
   if (GET_CODE (op) != REG)
@@ -1205,9 +1107,8 @@ ok_for_base (op, strict)
     }
 }
 
-ok_for_index (op, strict)
-     rtx op;
-     int strict;
+int
+ok_for_index (rtx op, int strict)
 {
   int rn;
   if (GET_CODE (op) != REG)
@@ -1228,9 +1129,8 @@ ok_for_index (op, strict)
     }
 }
 
-
-inside_bx_p (op, strict)
-     rtx op;
+int
+inside_bx_p (rtx op, int strict)
 {
   if (GET_CODE (op) == PLUS)
     {
@@ -1265,9 +1165,8 @@ inside_bx_p (op, strict)
 
 
 /* 16 bit register + pointer sized address */
-inside_x_p (op, strict)
-     rtx op;
-
+int
+inside_x_p (rtx op, int strict)
 {
   if (strict != 0 && strict != 1)
     abort ();
@@ -1305,18 +1204,16 @@ inside_x_p (op, strict)
   return 0;
 }
 
-
-inside_da_p (op, strict)
-     rtx op;
-     int strict;
+int
+inside_da_p (rtx op, int strict)
 {
   if (DATA_REF_P (op))
     return 1;
   return 0;
 }
 
-inside_ba_p (op, strict)
-     rtx op;
+int
+inside_ba_p (rtx op, int strict)
 {
   if (strict != 0 && strict != 1)
     abort ();
@@ -1337,8 +1234,8 @@ inside_ba_p (op, strict)
   return 0;
 }
 
-bx_p (op, strict)
-     rtx op;
+int
+bx_p (rtx op, int strict)
 {
   if (strict != 0 && strict != 1)
     abort ();
@@ -1347,8 +1244,8 @@ bx_p (op, strict)
   return inside_bx_p (XEXP (op, 0), strict);
 }
 
-ba_p (op, strict)
-     rtx op;
+int
+ba_p (rtx op, int strict)
 {
   if (strict != 0 && strict != 1)
     abort ();
@@ -1357,67 +1254,12 @@ ba_p (op, strict)
   return inside_ba_p (XEXP (op, 0), strict);
 }
 
-x_p (op, strict)
-     rtx op;
+int
+x_p (rtx op, int strict)
 {
   if (GET_CODE (op) != MEM)
     return 0;
   return inside_x_p (XEXP (op, 0), 0);
-}
-
-
-int
-ba_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (BADSUBREG (op))
-    return 0;
-  if (mode != GET_MODE (op))
-    return 0;
-
-  if (GET_CODE (op) == SUBREG)
-    op = SUBREG_REG (op);
-
-  if (ba_p (op, 0))
-    return 1;
-  return 0;
-}
-
-int
-bx_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (BADSUBREG (op))
-    return 0;
-
-  if (bx_p (op, 0))
-    return 1;
-  return 0;
-}
-
-int
-im_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return immediate_operand (op, mode);
-}
-
-int
-r_ir_da_x_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode);
-  return r;
-
 }
 
 
@@ -1426,10 +1268,8 @@ r_ir_da_x_operand (op, mode)
    the ir mode not work (since 4(rn) is invalid unless
    bx can also be done).  This works on the Z8002 since
    x mode will suffice */
-int
-r_ir_da_x_operand_for_di (op, mode)
-     rtx op;
-     enum machine_mode mode;
+/*int
+r_ir_da_x_operand_for_di (rtx op, enum machine_mode mode)
 {
   int r;
 
@@ -1440,11 +1280,10 @@ r_ir_da_x_operand_for_di (op, mode)
   return r;
 
 }
-
+*/
+/*
 int
-r_im_ir_da_x_operand_for_di (op, mode)
-     rtx op;
-     enum machine_mode mode;
+r_im_ir_da_x_operand_for_di (rtx op, enum machine_mode mode)
 {
   int r;
 
@@ -1456,142 +1295,33 @@ r_im_ir_da_x_operand_for_di (op, mode)
   return r;
 
 }
+*/
 
-
-
+/*
 int
-r_ir_da_x_ba_operand_for_di (op, mode)
-     rtx op;
-     enum machine_mode mode;
+r_ir_da_x_ba_operand_for_di (rtx op, enum machine_mode mode)
 {
   int r;
 
   r = r_operand (op, mode)
     || ba_operand (op, mode)
-    || ir_operand (op, mode)	/* Note we can use this because ba is here */
+    || ir_operand (op, mode)	/ * Note we can use this because ba is here * /
     || da_operand (op, mode)
     || x_operand (op, mode);
   return r;
 
 }
-
-
-
-int
-r_ir_da_x_ba_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode);
-  return r;
-
-}
-
-int
-r_im_ir_da_x_ba_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || im_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode);
-  return r;
-
-}
-
-int
-r_im_ir_da_x_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || im_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode);
-  return r;
-}
+*/
 
 
 int
-r_im_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return r_operand (op, mode) || im_operand (op, mode);
-}
-
-int
-r_im_ir_da_x_ba_bx_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || im_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode);
-  return r;
-}
-
-int
-r_ir_da_x_ba_bx_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode);
-  return r;
-}
-
-int
-r_ir_da_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode);
-  return r;
-}
-
-int
-move_check (operands, mode)
-     rtx operands[];
-     enum machine_mode mode;
+move_check (rtx operands[], enum machine_mode mode)
 {
   return 1;
 }
 
 int
-register_move_cost (x, y)
-     int x;
-     int y;
+register_move_cost (int x, int y)
 {
   if ((x == QI_REGS) != (y == QI_REGS))
     return 5;
@@ -1600,62 +1330,13 @@ register_move_cost (x, y)
 }
 
 int
-r_im_ir_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || im_operand (op, mode)
-    || ir_operand (op, mode);
-  return r;
-}
-
-int
-r_im_ir_da_x_operand_or_r (op, mode)
-     rtx op;
-     enum machine_mode mode;
+r_im_ir_da_x_operand_or_r (rtx op, enum machine_mode mode)
 {
   return (TARGET_BIG) ? r_operand (op, mode) : r_im_ir_da_x_operand (op, mode);
 }
 
-int
-r_da_x_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return r_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode);
-}
-
-int
-r_im_ir_da_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return r_operand (op, mode)
-    || im_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode);
-
-
-}
-
-ir_da_x_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode);
-}
-
-char *
-z8k_asm_output_opcode (file, string)
-     FILE *file;
-     char *string;
+const char *
+z8k_asm_output_opcode (FILE *file, const char *string)
 {
   if (string[0] == '$')
     {
@@ -1671,8 +1352,7 @@ z8k_asm_output_opcode (file, string)
 
 
 int
-data_ref_p_1 (X)
-     rtx X;
+data_ref_p_1 (rtx X)
 {
   if (TARGET_PIC)
     return 0;
@@ -1684,8 +1364,7 @@ data_ref_p_1 (X)
 }
 
 int
-data_ref_p (X)
-     rtx X;
+data_ref_p (rtx X)
 {
   if (TARGET_PIC)
     return 0;
@@ -1697,8 +1376,7 @@ data_ref_p (X)
 
 
 int
-disp_p (X)
-     rtx X;
+disp_p (rtx X)
 {
   return
     ((GET_CODE (X) == CONST_INT && (((unsigned) INTVAL (X) + 0xffff) < 0x1ffff)) || (!TARGET_HUGE && DATA_REF_P (X)));
@@ -1706,8 +1384,7 @@ disp_p (X)
 
 
 int
-ptr_reg (x)
-     rtx x;
+ptr_reg (rtx x)
 {
   if (reload_completed || !TARGET_HUGE)
     return 1;
@@ -1721,8 +1398,7 @@ ptr_reg (x)
    count */
 
 int
-calc_live_regs (count)
-     int *count;
+calc_live_regs (int *count)
 {
   int reg;
   int live_regs_mask = 0;
@@ -1730,7 +1406,7 @@ calc_live_regs (count)
 
   for (reg = 0; reg < FIRST_PSEUDO_REGISTER; reg++)
     {
-      if (regs_ever_live[reg] && !call_used_regs[reg])
+      if (df_regs_ever_live_p (reg) && !call_used_regs[reg])
 	{
 	  (*count)++;
 	  live_regs_mask |= (1 << reg);
@@ -1747,7 +1423,8 @@ calc_live_regs (count)
   return live_regs_mask;
 }
 
-io (from, to)
+int
+io (int from, int to)
 {
   int regs_saved;
   int d = calc_live_regs (&regs_saved);
@@ -1781,23 +1458,22 @@ io (from, to)
     }
 }
 
-fualign (direction, x, y)
+int
+fualign (int direction, int x, int y)
 {
 
   return (direction > 0 ? ((x + (y - 1)) & -y) : (x & (y - 1)));
 
 }
 
-faa (CUM, MODE, TYPE, NAMED)
-     int CUM;
-     enum machine_mode MODE;
-     tree TYPE;
-     int NAMED;
+void
+z8k_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
+			  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int nrs;
-  int align;
-
-  switch (MODE)
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+  
+  switch (mode)
     {
     case QImode:
     case HImode:
@@ -1816,18 +1492,17 @@ faa (CUM, MODE, TYPE, NAMED)
     case VOIDmode:
     case BLKmode:
     default:
-      nrs = (int_size_in_bytes (TYPE) + 1) / 2;
+      nrs = (int_size_in_bytes (type) + 1) / 2;
       break;
     }
 
-  CUM = CUM - (nrs - 1);
-  while (CUM >= 2
-	 && !HARD_REGNO_MODE_OK (CUM, MODE))
+  *cum = *cum - (nrs - 1);
+  while (*cum >= 2 && !HARD_REGNO_MODE_OK (*cum, mode))
     {
-      CUM--;
+      *cum--;
     }
 
-  return CUM - 1;
+  *cum--;
 
 }
 
@@ -1843,14 +1518,8 @@ struct options
 };
 
 static int
-output_option (file, sep, type, name, indent, pos, max)
-     FILE *file;
-     char *sep;
-     char *type;
-     char *name;
-     char *indent;
-     int pos;
-     int max;
+output_option (FILE *file, const char *sep, const char *type,
+		const char *name, const char *indent, int pos, int max)
 {
   if (strlen (sep) + strlen (type) + strlen (name) + pos > max)
     {
@@ -1860,28 +1529,21 @@ output_option (file, sep, type, name, indent, pos, max)
   return pos + fprintf (file, "%s%s%s", sep, type, name);
 }
 
+/*
 static struct
 {
   char *name;
   int value;
 }
 
-m_options[] = TARGET_SWITCHES;
+m_options[] = TARGET_SWITCHES; */
 
 static void
-output_options (file, f_options, f_len, W_options, W_len,
-		pos, max, sep, indent, term)
-     FILE *file;
-     struct options *f_options;
-     struct options *W_options;
-     int f_len, W_len;
-     int pos;
-     int max;
-     char *sep;
-     char *indent;
-     char *term;
+output_options (FILE *file, struct options *f_options, int f_len,
+		struct options *W_options, int W_len, int pos, int max,
+		char *sep, char *indent, char *term)
 {
-  register int j;
+/*  register int j;
   extern int flag_traditional;
 
   if (optimize)
@@ -1892,8 +1554,6 @@ output_options (file, f_options, f_len, W_options, W_len,
     pos = output_option (file, sep, "-traditional", "", indent, pos, max);
   if (profile_flag)
     pos = output_option (file, sep, "-p", "", indent, pos, max);
-  if (profile_block_flag)
-    pos = output_option (file, sep, "-a", "", indent, pos, max);
 
   for (j = 0; j < f_len; j++)
     if (*f_options[j].variable == f_options[j].on_value)
@@ -1913,26 +1573,14 @@ output_options (file, f_options, f_len, W_options, W_len,
       pos = output_option (file, sep, "-m", m_options[j].name,
 			   indent, pos, max);
 
-
+*/
 
 }
 
-
-asm_file_start (file, f_options, f_len, W_options, W_len)
-     FILE *file;
-     struct options *f_options;
-     struct options *W_options;
-     int f_len, W_len;
+void
+asm_file_start (FILE *file, struct options *f_options, int f_len,
+		struct options *W_options, int W_len)
 {
-  int i;
-
-  extern int arg_regs_order[];
-  extern char *main_input_filename;
-  extern int arg_nregs;
-  extern char call_used_regs[];
-  extern char *input_filename;
-
-  char *quote = TARGET_YASM ? "" : "\"";
 
   fprintf (file, "!\tGCC  Z8000\n");
   fprintf (file, "!\tCygnus Support\n");
@@ -1964,8 +1612,7 @@ asm_file_start (file, f_options, f_len, W_options, W_len)
 }
 
 void
-asm_file_end (file)
-     FILE *file;
+asm_file_end (FILE *file)
 {
   if (TARGET_YASM)
     {
@@ -2022,17 +1669,15 @@ typedef struct source_file_node file_node;
 static file_node *file_head = 0, *current_file = 0;
 
 void
-add_line (line_no, source_line)
-     int line_no;
-     char source_line[];
+add_line (int line_no, char source_line[])
 {
   if (file_head)
     {
       line_node *temp_node;
 
-      temp_node = (line_node *) (malloc (sizeof (line_node)));
+      temp_node = (line_node *) (alloca (sizeof (line_node)));
       temp_node->line_no = line_no;
-      temp_node->line = (char *) (malloc (strlen (source_line) + 1));
+      temp_node->line = (char *) (alloca (strlen (source_line) + 1));
       strcpy (temp_node->line, source_line);
 
       if (current_file->head)
@@ -2051,8 +1696,7 @@ add_line (line_no, source_line)
 }
 
 void
-load_single_file (file_name)
-     char *file_name;
+load_single_file (const char *file_name)
 {
   FILE *source_fp;
   char source_line[LINE_LEN];
@@ -2091,9 +1735,8 @@ load_single_file (file_name)
     }
 }
 
-
-load_source_file (file_name)
-     char *file_name;
+int
+load_source_file (const char *file_name)
 {
   file_node *temp_node, *tail_node = file_head;
 
@@ -2106,9 +1749,9 @@ load_source_file (file_name)
 
   if (temp_node == 0)
     {
-      temp_node = (file_node *) (malloc (sizeof (file_node)));
+      temp_node = (file_node *) (alloca (sizeof (file_node)));
       temp_node->next = 0;
-      temp_node->name = (char *) (malloc (strlen (file_name) + 1));
+      temp_node->name = (char *) (alloca (strlen (file_name) + 1));
       strcpy (temp_node->name, file_name);
       temp_node->head = temp_node->current_line = 0;
 
@@ -2123,9 +1766,7 @@ load_source_file (file_name)
 }
 
 void
-print_source_line (file, line_no)
-     FILE *file;
-     int line_no;
+print_source_line (FILE *file, int line_no)
 {
   if (TARGET_SOURCE && current_file)
     {
@@ -2168,10 +1809,11 @@ print_source_line (file, line_no)
 	}
     }
 
-  if (TARGET_LINE)
+/*  if (TARGET_LINE)
     {
-      fprintf (file, ".line %d\n", line_no);
-    }
+*/      fprintf (file, ".line %d\n", line_no);
+/*    }
+ */ 
 }
 
 
@@ -2183,39 +1825,31 @@ print_source_line (file, line_no)
 
 
 rtx
-gen_push (operand0, mode)
-     rtx operand0;
-     enum machine_mode mode;
+gen_push (rtx operand0, enum machine_mode mode)
 {
-  return gen_rtx (SET, VOIDmode,
-		  gen_rtx (MEM, mode, gen_rtx (PRE_DEC, mode,
-		    gen_rtx (REG, pmode, STACK_POINTER_REGNUM))), operand0);
+  return gen_rtx_SET (VOIDmode,
+		gen_rtx_MEM (mode, gen_rtx_PRE_DEC (mode,
+			gen_rtx_REG (Pmode, STACK_POINTER_REGNUM))), operand0);
 }
 
 rtx
-gen_pop (operand0, mode)
-     rtx operand0;
-     enum machine_mode mode;
+gen_pop (rtx operand0, enum machine_mode mode)
 {
-  return gen_rtx (SET, VOIDmode,
-		  operand0,
-		  gen_rtx (MEM, mode, gen_rtx (POST_INC, mode,
-			      gen_rtx (REG, pmode, STACK_POINTER_REGNUM))));
+  return gen_rtx_SET (VOIDmode, operand0,
+		gen_rtx_MEM (mode, gen_rtx_POST_INC (mode,
+			gen_rtx_REG (Pmode, STACK_POINTER_REGNUM))));
 }
 
 void
-push (rn, mode)
-     int rn;
-     enum machine_mode mode;
+push (int rn, enum machine_mode mode)
 {
-  emit_insn (gen_push (gen_rtx (REG, mode, rn), mode));
+  emit_insn (gen_push (gen_rtx_REG (mode, rn), mode));
 }
 
 void
-pop (rn, mode)
-     enum machine_mode mode;
+pop (int rn, enum machine_mode mode)
 {
-  emit_insn (gen_pop (gen_rtx (REG, mode, rn), mode));
+  emit_insn (gen_pop (gen_rtx_REG (mode, rn), mode));
 }
 
 
@@ -2224,12 +1858,10 @@ pop (rn, mode)
    external shape - so go through the renumber vector */
 
 static void
-push_regs (mask)
-     int mask;
+push_regs (int mask)
 {
   int i;
 
-  int size = 0;
   /* The mask is a bit-for-bit for the internal register numbering system,
      so r10 has the fp in it.  We work out the external register numbering
      so that we can push the registers efficiently */
@@ -2265,13 +1897,11 @@ push_regs (mask)
 
 
 static void
-pop_regs (mask)
-     int mask;
+pop_regs (int mask)
 {
   int i;
   int j;
 
-  int size = 0;
   /* The mask is a bit-for-bit for the internal register numbering system,
      so r10 has the fp in it.  We work out the external register numbering
      so that we can push the registers efficiently */
@@ -2309,9 +1939,7 @@ pop_regs (mask)
 /* Adjust the stack and return the number of bytes taken to do it */
 
 static void
-output_stack_adjust (direction, size)
-     int direction;
-     int size;
+output_stack_adjust (int direction, int size)
 {
   if (size)
     {
@@ -2332,7 +1960,7 @@ z8k_expand_prologue ()
 
   live_regs_mask = calc_live_regs (&d);
 
-  output_stack_adjust (-1, current_function_pretend_args_size);
+  output_stack_adjust (-1, crtl->args.pretend_args_size);
 
   if (frame_pointer_needed)
     {
@@ -2351,10 +1979,7 @@ z8k_expand_prologue ()
 }
 
 void
-z8k_declare_function_name (file, name, decl)
-     FILE *file;
-     char *name;
-     tree decl;
+z8k_declare_function_name (FILE *file, const char *name, tree decl)
 {
   int reg_count;
   int parm_size = 0;
@@ -2377,13 +2002,13 @@ z8k_declare_function_name (file, name, decl)
   /* Output the information.  */
   fprintf (file, "! stack frame requirements for %s: %d bytes\n", name,
 	   (reg_count * 2 + get_frame_size ()
-	    + current_function_pretend_args_size));
+	    + crtl->args.pretend_args_size));
   fprintf (file, "! register saves: %d bytes\n", reg_count * 2);
   fprintf (file, "! automatics, spills, etc: %d bytes\n",
 	   get_frame_size () - parm_size);
   fprintf (file, "! parameters: %d bytes\n", parm_size);
   fprintf (file, "! varargs flushback area: %d bytes\n",
-	   current_function_pretend_args_size);
+	   crtl->args.pretend_args_size);
 
   /* Now output the label for this function.  */
   asm_output_name (file, name); 
@@ -2395,7 +2020,6 @@ z8k_expand_epilogue ()
 {
   int live_regs_mask;
   int d;
-  int i;
   int need;
   live_regs_mask = calc_live_regs (&d);
 
@@ -2423,49 +2047,19 @@ z8k_expand_epilogue ()
       pop_regs (live_regs_mask);
     }
   output_stack_adjust (1, extra_push + need +
-		       current_function_pretend_args_size);
+		       crtl->args.pretend_args_size);
 
   current_function_anonymous_args = 0;
 }
 
-int
-pop_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (GET_CODE (op) != MEM)
-    return 0;
-
-  if (GET_MODE (op) != mode)
-    return 0;
-
-  op = XEXP (op, 0);
-
-  if (GET_CODE (op) != POST_INC)
-    return 0;
-
-  return XEXP (op, 0) == stack_pointer_rtx;
-}
 
 int
-smallint_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
+z8k_address_cost (rtx op, enum machine_mode mode, addr_space_t as, bool speed)
 {
-  return GET_CODE (op) == CONST_INT
-    && (CONST_OK_FOR_LETTER_P (INTVAL (op), 'J')
-	|| CONST_OK_FOR_LETTER_P (INTVAL (op), 'K'));
-}
-
-
-int
-address_cost (mode)
-     rtx mode;
-{
-  if (GET_CODE (mode) == PLUS)
+  if (GET_CODE (op) == PLUS)
     {
-      rtx lhs = XEXP (mode, 0);
-      rtx rhs = XEXP (mode, 1);
+      rtx lhs = XEXP (op, 0);
+      rtx rhs = XEXP (op, 1);
       if (GET_CODE (lhs) == REG
 	  && GET_CODE (rhs) == CONST_INT)
 	return 10;
@@ -2476,123 +2070,14 @@ address_cost (mode)
   return 1;
 }
 
-int
-power_two_operand (operand, mode)
-     rtx operand;
-     enum machine_mode mode;
-{
-  if (GET_CODE (operand) == CONST_INT)
-    {
-      int i;
-      return POWER_OF_2 (INTVAL (operand));
-    }
-  return 0;
-}
-
-COM_POWER_OF_2 (value)
-     int value;
+int COM_POWER_OF_2 (int value)
 {
   return POWER_OF_2 (~(value | (~0xffff)));
 }
 
-com_power_two_operand (operand, mode)
-     rtx operand;
-     enum machine_mode mode;
-{
-
-  if (GET_CODE (operand) == CONST_INT)
-    return COM_POWER_OF_2 (INTVAL (operand));
-  return 0;
-}
-
-
-int
-prd_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (GET_CODE (op) != MEM)
-    return 0;
-  if (GET_MODE (op) != mode)
-    return 0;
-  op = XEXP (op, 0);
-  if (GET_CODE (op) != PRE_DEC)
-    return 0;
-  return register_operand (XEXP (op, 0), Pmode);
-}
-
-int
-poi_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (GET_CODE (op) != MEM)
-    return 0;
-  if (GET_MODE (op) != mode)
-    return 0;
-  op = XEXP (op, 0);
-  if (GET_CODE (op) != POST_INC)
-    return 0;
-  return register_operand (XEXP (op, 0), Pmode);
-}
-
-
-r_im_ir_da_x_ba_bx_poi_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || im_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode)
-    || poi_operand (op, mode);
-  return r;
-}
-
-int
-r_ir_da_x_ba_bx_poi_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode)
-    || poi_operand (op, mode);
-  return r;
-}
-
-int
-r_ir_da_x_ba_bx_prd_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode)
-    || prd_operand (op, mode);
-  return r;
-}
-
 
 rtx
-legitimize_address (oldx, mode)
-     rtx oldx;
-     enum machine_mode mode;
+z8k_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
 {
 #if 0
   if (TARGET_PIC)
@@ -2601,33 +2086,17 @@ legitimize_address (oldx, mode)
 	  || GET_CODE (oldx) == LABEL_REF)
 	{
 	  rtx ptr = gen_reg_rtx (Pmode);
-	  emit_insn (gen_rtx (SET, VOIDmode, ptr,
-			      gen_rtx (LO_SUM, pic_reg, oldx)));
-	  return gen_rtx (MEM, mode, ptr);
+	  emit_insn (gen_rtx_SET (VOIDmode, ptr,
+			      gen_rtx_LO_SUM (pic_reg, oldx)));
+	  return gen_rtx_MEM (mode, ptr);
 	}
     }
 #endif
   return oldx;
 }
 
-symbol_ref (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  if (GET_CODE (op) == SYMBOL_REF)
-    return 1;
-  return 0;
-}
-
-not_subreg_register_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return (GET_CODE (op) == REG);
-}
-
-BADSUBREG (op)
-     rtx op;
+int
+BADSUBREG (rtx op)
 {
   /* Can't subreg someting like subreg:HI (mem:SI (plus: reg reg) )
      cause there's no room to put the extra +1 to get to the low part */
@@ -2661,14 +2130,14 @@ BADSUBREG (op)
 	  return 1;
 	  /* If you want the high part (the low addressed bit) then the other modes
 	   work too */
-	  if (SUBREG_WORD (op) == 0 && 0)
+	/*  if (SUBREG_WORD (op) == 0 && 0)
 	    {
 
 	      if (inside_bx_p (inside, 0))
 		return 0;
 
 	    }
-
+	*/ /* XXX */
 
 
 	  return 1;
@@ -2682,10 +2151,7 @@ BADSUBREG (op)
    NO_REGS is returned.  */
 
 enum reg_class
-secondary_reload_class (class, mode, in)
-     enum reg_class class;
-     enum machine_mode mode;
-     rtx in;
+secondary_reload_class (enum reg_class rclass, enum machine_mode mode, rtx in)
 {
   int regno = -1;
   enum rtx_code code = GET_CODE (in);
@@ -2695,7 +2161,7 @@ secondary_reload_class (class, mode, in)
     return NO_REGS;
 
   /* Can easily move in and out of qi regs */
-  if (class == QI_REGS)
+  if (rclass == QI_REGS)
     return NO_REGS;
   if (!CONSTANT_P (in))
     {
@@ -2715,40 +2181,9 @@ secondary_reload_class (class, mode, in)
 
 }
 
-int
-ir_da_x_ba_bx_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-
-  return ir_operand (op, mode)
-    || da_operand (op, mode)
-    || x_operand (op, mode)
-    || ba_operand (op, mode)
-    || bx_operand (op, mode);
-}
 
 int
-r_da_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return r_operand (op, mode) || da_operand (op, mode);
-}
-
-
-int
-immediate15_operand (op, mode)
-     rtx op;
-     enum machine_mode mode;
-{
-  return GET_CODE (op) == CONST_INT &&  (!(INTVAL (op) & 0x8000));
-}
-
-int
-moveok (operands, mode)
-     rtx *operands;
-     enum machine_mode mode;
+moveok (rtx *operands, enum machine_mode mode)
 {
   if (r_operand (operands[0], mode) && r_ir_da_x_ba_bx_operand (operands[1], mode))
     return 1;
@@ -2768,11 +2203,7 @@ moveok (operands, mode)
 }
 
 
-void
-asm_output_ascii (file, p, size)
-     FILE *file;
-     char *p;
-     int size;
+void asm_output_ascii (FILE *file, const char *p, int size)
 {
   int i, col;
   if (TARGET_YASM)
@@ -2838,14 +2269,13 @@ asm_output_ascii (file, p, size)
    obstack, so that they will be valid at the end of the compilation.  */
 
 void
-z8k_output_external (name)
-     char *name;
+z8k_output_external (const char *name)
 {
   struct extern_list *p;
 
-  p = (struct extern_list *) permalloc ((long) sizeof (struct extern_list));
+  p = (struct extern_list *) xmalloc ((long) sizeof (struct extern_list));
   p->next = extern_head;
-  p->name = name;
+  p->name = xstrdup (name);
   extern_head = p;
 }
 
@@ -2853,14 +2283,12 @@ z8k_output_external (name)
    least or most significant word first */
 static
 int 
-whichway (dst, src)
-     rtx dst;
-     rtx src;
+whichway (rtx dst, rtx src)
 {
   if (GET_CODE (dst) == REG)
     {
       int rdst = REGNO (dst);
-      rtx dst_msw = gen_rtx (REG, SImode, rdst + 2);
+      rtx dst_msw = gen_rtx_REG (SImode, rdst + 2);
       if (GET_CODE (src) == REG)
 	{
 	  int rsrc = REGNO (src);
@@ -2888,10 +2316,8 @@ whichway (dst, src)
 
 /* Return string to move 64 bit operand without trampling arguments. */
 
-char *
-output_move64 (dst, src)
-     rtx dst;
-     rtx src;
+const char *
+output_move64 (rtx dst, rtx src)
 {
   if (push_operand (dst, GET_MODE (dst)))
     {
@@ -2907,3 +2333,63 @@ output_move64 (dst, src)
   else
     return "$ldl	%S0,%S1\n\t$ldl	%T0,%T1 ! di b";
 }
+
+void
+z8k_asm_globalize_label (FILE *file, const char *name)
+{
+	fputs ("\tglobal\t", file);
+	assemble_name (file, name);
+	fputs ("\n", file);
+}
+
+void
+z8k_asm_trampoline_template (FILE *file)
+{
+  if (TARGET_BIG)
+    {
+      fprintf (file,"	ldl	rr0,#0x12345678\n");
+      fprintf (file,"	jp	t,0x12345678\n");
+    }
+  else
+    {
+      fprintf (file,"	ld	r0,#0x1234\n");
+      fprintf (file,"	jp	t,0x1234\n");
+    }
+}
+
+void
+z8k_trampoline_init (rtx tramp, tree fnaddr, rtx cxt)
+{
+   if (TARGET_BIG)
+     {
+/*       emit_move_insn (gen_rtx_MEM (Pmode, plus_constant (Pmode, tramp, 2)), cxt);
+       emit_move_insn (gen_rtx_MEM (Pmode, plus_constant (Pmode, tramp, 8)), fnaddr);
+*/     }
+   else
+     {
+/*       emit_move_insn (gen_rtx_MEM (HImode, plus_constant (Pmode, tramp, 2)), cxt);
+       emit_move_insn (gen_rtx_MEM (HImode, plus_constant (Pmode, tramp, 6)), fnaddr);
+*/     }
+}
+
+bool
+z8k_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
+{
+	return GET_CODE(x) != CONST_DOUBLE;
+}
+
+bool
+z8k_can_eliminate (const int from, const int to)
+{
+	return (!frame_pointer_needed
+		|| ((from) == ARG_POINTER_REGNUM && (to) == FRAME_POINTER_REGNUM)
+		|| ((from) == RETURN_ADDRESS_POINTER_REGNUM && (to) == FRAME_POINTER_REGNUM));
+}
+
+bool
+z8k_mode_dependent_address (const_rtx addr, addr_space_t addr_space ATTRIBUTE_UNUSED) {
+  return (GET_CODE (addr) == POST_INC || GET_CODE (addr) == PRE_DEC);
+}
+
+
+struct gcc_target targetm = TARGET_INITIALIZER;
