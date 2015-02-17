@@ -2358,7 +2358,8 @@ z8k_asm_trampoline_template (FILE *file)
 }
 
 void
-z8k_trampoline_init (rtx tramp, tree fnaddr, rtx cxt)
+z8k_trampoline_init (rtx tramp ATTRIBUTE_UNUSED, tree fnaddr ATTRIBUTE_UNUSED,
+		rtx cxt ATTRIBUTE_UNUSED)
 {
    if (TARGET_BIG)
      {
