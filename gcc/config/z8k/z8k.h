@@ -32,9 +32,6 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 /* Write out defines which depend on the compilation options */
 
-#define NO_BUILTIN_PTRDIFF_TYPE
-#define NO_BUILTIN_SIZE_TYPE
-
 #define SIZE_TYPE    (TARGET_BIG ? "long unsigned int" : "unsigned int")
 #define PTRDIFF_TYPE (TARGET_BIG ? "long int" : "int")
 
@@ -54,13 +51,9 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 #define ASM_SPEC "%{mlist:-ahld}"
 
-/* Print subsidiary information on the compiler version in use.  */
-#define TARGET_VERSION fprintf (stderr, " (z8000)");
-
 
 /* Run-time compilation parameters selecting different hardware subsets.  */
-int target_flags;
-
+/*
 #define TARGET_STD_FRAME_BIT  	(1<<20)
 #define TARGET_STD_FRAME	(target_flags & TARGET_STD_FRAME_BIT)
 
@@ -69,34 +62,37 @@ int target_flags;
 
 #define TARGET_STD_BIT  	(1<<22)
 #define TARGET_STD		(target_flags & TARGET_STD_BIT)
+*/
 
 
-
-
+/*
 #define TARGET_DEFAULT \
  (TARGET_REGPARMS_BIT|TARGET_STRUCT_BYTE_ALIGN_BIT|\
   TARGET_TYPE64_BIT|TARGET_TYPED64_BIT)
-
+*/
+#define TARGET_DEFAULT 0
 
 /* -m options which take arguments */
+/*
 char *call_used_option;
 char *args_in_option;
 char *args_mlist;
 char *fakes_option;
-
-#define TARGET_OPTIONS { { "call-used-",&call_used_option},\
+*/
+/* #define TARGET_OPTIONS { { "call-used-",&call_used_option},\
 			 { "args-in", &args_in_option}, \
 			 { "fakes-", &fakes_option}, \
 			 { "list", &args_mlist}}
+*/
 
 
 /* Do any checking or such that is needed after processing the -m
    switches.  */
-#define OVERRIDE_OPTIONS override_options()
+/* #define OVERRIDE_OPTIONS override_options() */
 
 /* Define this to change the optimizations performed by default.  */
 
-#define OPTIMIZATION_OPTIONS(LEVEL)	\
+/* #define OPTIMIZATION_OPTIONS(LEVEL)	\
 {					\
   if ((LEVEL) >= 1)			\
     {					\
@@ -104,13 +100,14 @@ char *fakes_option;
       flag_omit_frame_pointer = 1;	\
     }					\
 }
+*/
 
 
 /* Target machine storage layout */
 
 /* Define to use software floating point emulator for REAL_ARITHMETIC and
    decimal <-> binary conversion. */
-#define REAL_ARITHMETIC
+/* #define REAL_ARITHMETIC */
 
 /* Define this if most significant bit is lowest numbered
    in instructions that operate on numbered bit-fields.
@@ -282,12 +279,6 @@ extern int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM 10
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 0
-
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM  16
 
@@ -350,14 +341,14 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
    of length N_REG_CLASSES.  */
 
 #define REG_CLASS_CONTENTS		\
-{	0x00000, /* NO_REGS  */ 	\
-	0x000fe, /* SQI_REGS  */ 	\
-	0x000ff, /* QI_REGS  */ 	\
-      	0x0c000, /* SP_REGS  */ 	\
-	0x0ff00, /* NOTQI_REGS  */ 	\
-      	0x1fffe, /* PTR_REGS */	 	\
-	0x0c0ff, /* SP_QI_REGS */	\
-        0x1ffff }
+{	{ 0x00000 }, /* NO_REGS  */ 	\
+	{ 0x000fe }, /* SQI_REGS  */ 	\
+	{ 0x000ff }, /* QI_REGS  */ 	\
+      	{ 0x0c000 }, /* SP_REGS  */ 	\
+	{ 0x0ff00 }, /* NOTQI_REGS  */ 	\
+      	{ 0x1fffe }, /* PTR_REGS */	 	\
+	{ 0x0c0ff }, /* SP_QI_REGS */	\
+        { 0x1ffff }}
 
 /* The same information, inverted:
    Return the class number of the smallest class containing
@@ -378,60 +369,11 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 /* When defined, the compiler allows registers explicitly used in the
    rtl to be used as spill registers but prevents the compiler from
    extending the lifetime of these registers. */
-#define SMALL_REGISTER_CLASSES 1
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 
-/* Get reg_class from a letter such as appears in the machine description.  */
-
-#define REG_CLASS_FROM_LETTER(C)		\
-  ((C) == 'u' ? QI_REGS  : 			\
-  ((C) == 'v' ? PTR_REGS :			\
-  ((C) == 'q' ? SP_REGS  :			\
-  ((C) == 'r' ? GENERAL_REGS  :			\
-  (NO_REGS)))))
-
-
-/* Define this macro to change register usage conditional on target flags.  */
-#define CONDITIONAL_REGISTER_USAGE
-
-/* The letters I, J, K, L, M, N, O, and P in a register constraint string
-   can be used to stand for particular ranges of immediate operands.
-   This macro defines what the ranges are.
-   C is the letter, and VALUE is a constant value.
-   Return 1 if VALUE is in the range specified by C.
-
-   For z8k
-   `I' is the constant 0.
-   `J' is a constant for an inc (1..16)
-   `K' is a constant for a dec  (-1..-16)
-   `L' is 0..15, used in shifts and ldk
-   `M' is the constant 1, used in shifts
-   `N' is the constant 2, used in shifts
-   `O' is a power of two
-   `P' is a comp power of two
-*/
 #define POWER_OF_2(I) ((I) && POWER_OF_2_or_0(I))
 #define POWER_OF_2_or_0(I) (((I) & ((unsigned)(I) - 1)) == 0)
-
-
-#define CONST_OK_FOR_LETTER_P(VALUE, C)				\
-    ((C) == 'I' ? (VALUE) == 0   				\
-   : (C) == 'J' ? (VALUE) >=  1  && (VALUE) <=  16 		\
-   : (C) == 'K' ? (VALUE) <= -1  && (VALUE) >= -16 		\
-   : (C) == 'L' ? (VALUE) >=  0  && (VALUE) <=  15 		\
-   : (C) == 'M' ? (VALUE) ==  1					\
-   : (C) == 'N' ? (VALUE) ==  2					\
-   : (C) == 'O' ? POWER_OF_2(VALUE)                           	\
-   : (C) == 'P' ? COM_POWER_OF_2(VALUE)                         \
-   : 0)
-
-
-/* Similar, but for floating or large integer constants, and defining letters
-   G and H.   Here VALUE is the CONST_DOUBLE rtx itself.
-
-   For z8k, we don't have anything special here */
-
-#define CONST_DOUBLE_OK_FOR_LETTER_P(VALUE, C) 0
 
 /* Given an rtx X being reloaded into a reg required to be
    in class CLASS, return the class of reg to actually use.
@@ -470,7 +412,7 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
    moving between QI_REGS and anything else may be expensive since the
    other regs don't do QI mode too well */
 
-#define REGISTER_MOVE_COST(CLASS1, CLASS2)  ((CLASS1) == (CLASS2) ? 2: 5) 
+#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2)  ((CLASS1) == (CLASS2) ? 2: 5) 
 
 /* A C expressions returning the cost of moving data of MODE from a register to
    or from memory. */
@@ -491,7 +433,7 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
    is at the high-address end of the local variables;
    that is, each additional local variable allocated
    goes at a more negative offset in the frame.  */
-#define FRAME_GROWS_DOWNWARD
+#define FRAME_GROWS_DOWNWARD 1
 
 /* Offset within stack frame to start allocating local variables at.
    If FRAME_GROWS_DOWNWARD, this is the offset to the END of the
@@ -527,11 +469,7 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
  { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
 
 
-#define CAN_ELIMINATE(FROM, TO)						\
- (!frame_pointer_needed							\
-  || ((FROM) == ARG_POINTER_REGNUM && (TO) == FRAME_POINTER_REGNUM)	\
-  || ((FROM) == RETURN_ADDRESS_POINTER_REGNUM				\
-      && (TO) == FRAME_POINTER_REGNUM))
+#define TARGET_CAN_ELIMINATE z8k_can_eliminate
 
 
 /* On the z8k, the first parm is offset by the saved return address
@@ -546,18 +484,6 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) OFFSET=io(FROM,TO);
 
 
-		
-/* Define this if stack space is still allocated for a parameter passed
-   in a register.  */
-/** #define REG_PARM_STACK_SPACE */
-
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FNDECL,FUNTYPE,SIZE) 0
 
 
 /* Define how to find the value returned by a function.
@@ -578,7 +504,7 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 
 
 #define LIBCALL_VALUE(MODE) \
-  gen_rtx (REG, MODE, \
+  gen_rtx_REG (MODE, \
 	    (TARGET_STD_RET ? (GET_MODE_SIZE (MODE) <= GET_MODE_SIZE(HImode) ? 7 : \
 			       GET_MODE_SIZE (MODE) <= GET_MODE_SIZE(SImode) ? 6 : 4) : 2))
 
@@ -608,7 +534,7 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 
 #define NPARM_REGS 6
 
-#define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,INDIRECT) \
+#define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS) \
   (CUM) = 7 ;
 
 
@@ -627,19 +553,15 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 
 */
 
-extern struct rtx_def* z8k_function_arg();
-
-#define FUNCTION_ARG(CUM,MODE,TYPE,NAMED) \
-	z8k_function_arg(CUM,MODE,TYPE,NAMED)
+#define TARGET_FUNCTION_ARG z8k_function_arg
 
 
 
 
-extern int arg_regs[FIRST_PSEUDO_REGISTER];
+extern char arg_regs[FIRST_PSEUDO_REGISTER];
 #define FUNCTION_ARG_REGNO_P(N) arg_regs[N]
 
-#define FUNCTION_ARG_ADVANCE(CUM,MODE,TYPE,NAMED)\
-  CUM=faa(CUM,MODE,TYPE,NAMED)
+#define TARGET_FUNCTION_ARG_ADVANCE z8k_function_arg_advance
 
 /* Round a register number down to a proper boundary for an arg of mode 
    MODE. 
@@ -663,7 +585,7 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
    is ever used in the function.  This macro is responsible for
    knowing which registers should not be saved even if used.  */
 
-#define FUNCTION_PROLOGUE(FILE, SIZE) ; 
+#define TARGET_FUNCTION_PROLOGUE(FILE, SIZE) ; 
 
 
 /* Output assembler code to FILE to increment profiler label # LABELNO
@@ -689,7 +611,7 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
    of alloca; we also take advantage of it to omit stack adjustments
    before returning.  */
 
-#define FUNCTION_EPILOGUE(FILE, SIZE)	;
+#define TARGET_FUNCTION_EPILOGUE(FILE, SIZE)	;
 
 
 /* Output assembler code for a block containing the constant parts
@@ -714,20 +636,8 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
 
  */
 
-#define TRAMPOLINE_TEMPLATE(FILE)		                        \
-{									\
-  if (TARGET_BIG)  							\
-    {									\
-      fprintf (FILE,"	ldl	rr0,#0x12345678\n");			\
-      fprintf (FILE,"	jp	t,0x12345678\n");			\
-    }									\
-  else 									\
-    {									\
-      fprintf (FILE,"	ld	r0,#0x1234\n");				\
-      fprintf (FILE,"	jp	t,0x1234\n");				\
-    }									\
-}									  
-									 
+#define TARGET_ASM_TRAMPOLINE_TEMPLATE z8k_asm_trampoline_template
+
 /* Length in units of the trampoline for entering a nested function.  */
 
 #define TRAMPOLINE_SIZE    (TARGET_BIG ? 12 : 8)
@@ -740,24 +650,11 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
    is taken (e.g., it might be passed to qsort), so we take the trouble
    to initialize the "hint" field in the JMP insn.  */
 
-#define INITIALIZE_TRAMPOLINE(TRAMP, FNADDR, CXT)                             	\
-{		        							\
-   if (TARGET_BIG) 								\
-     {										\
-       emit_move_insn (gen_rtx (MEM, Pmode, plus_constant (TRAMP, 2)), CXT); 	\
-       emit_move_insn (gen_rtx (MEM, Pmode, plus_constant (TRAMP, 8)), FNADDR);\
-     }										\
-   else 									\
-     {										\
-       emit_move_insn (gen_rtx (MEM, HImode, plus_constant (TRAMP, 2)), CXT); 	\
-       emit_move_insn (gen_rtx (MEM, HImode, plus_constant (TRAMP, 6)), FNADDR);\
-     }										\
- }										\
+#define TARGET_TRAMPOLINE_INIT z8k_trampoline_init
 
-										 
 #define RETURN_ADDR_RTX(count, frame)						\
   ((count == 0)									\
-   ? gen_rtx (MEM, Pmode, gen_rtx (REG, Pmode, RETURN_ADDRESS_POINTER_REGNUM))	\
+   ? gen_rtx_MEM (Pmode, gen_rtx_REG (Pmode, RETURN_ADDRESS_POINTER_REGNUM))	\
    : (rtx) 0)
 
 /* Addressing modes, and classification of registers for them.  */
@@ -805,7 +702,7 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
 /* Include all constant integers and constant doubles, but not
    floating-point, except for floating-point zero.  */
 
-#define LEGITIMATE_CONSTANT_P(X)  (GET_CODE(X) != CONST_DOUBLE)
+#define TARGET_LEGITIMATE_CONSTANT_P z8k_legitimate_constant_p
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
@@ -842,11 +739,6 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
 
 #endif
 
-/* 'Q' ir or da     PTR reg or direct address
-   'R' x            address + HI reg - never valid in huge mode
-   'S' ba or bx     disp + PTR reg   (or PTR reg + reg never in huge)
-   'T' ba
- */
 
 #define INSIDE(op,side) XEXP(op,side)
 
@@ -891,13 +783,6 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define BX_P(op) bx_p(op, IS_STRICT)
 
-
-
-#define EXTRA_CONSTRAINT(op, c)                                 \
-	(((c) == 'Q')  ? (IR_P(op) || DA_P(op)) :               \
-        (((c) == 'R')  ? (X_P(op))  :                           \
-        (((c) == 'T')  ? (BA_P(op))  :                          \
-        (((c) == 'S')  ? (BA_P(op) || BX_P(op)) : abort() ))))
 
 /* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
    that is a valid memory address for an instruction.
@@ -971,9 +856,8 @@ extern int arg_regs[FIRST_PSEUDO_REGISTER];
    opportunities to optimize the output.
 
 */
-extern struct rtx_def *legitimize_address();
 
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)	 x = legitimize_address(oldx,mode)
+#define TARGET_LEGITIMIZE_ADDRESS z8k_legitimize_address
 
 
 /* Go to LABEL if ADDR (a legitimate address expression)
@@ -982,9 +866,11 @@ extern struct rtx_def *legitimize_address();
 
    For the z8k, pushing and poping needs to know the mode */
 
-
+#define TARGET_MODE_DEPENDENT_ADDRESS_P z8k_mode_dependent_address
+/*
 #define GO_IF_MODE_DEPENDENT_ADDRESS(A,L)	\
  { if (GET_CODE (A) == POST_INC || GET_CODE (A) == PRE_DEC) goto L;  }
+*/
 
 
 /* Compute the cost of an address. */
@@ -994,7 +880,7 @@ extern struct rtx_def *legitimize_address();
    requires to two regs - that would mean more pseudos with longer
    lifetimes.  */
 
-#define ADDRESS_COST(RTX) address_cost(RTX)
+#define TARGET_ADDRESS_COST z8k_address_cost
 
 
 /* Define this if some processing needs to be done immediately before
@@ -1005,7 +891,7 @@ extern struct rtx_def *legitimize_address();
 
 #define FINAL_PRESCAN_INSN(INSN,OPERANDS,NOPERANDS)            \
 {							       \
-  static int old = 0;					       \
+/*  static int old = 0;					       \
   extern int *insn_addresses;				       \
   int uid = INSN_UID (INSN);				       \
   if (TARGET_ISIZE && insn_addresses)			       \
@@ -1014,7 +900,7 @@ extern struct rtx_def *legitimize_address();
 	     insn_addresses[uid] - old);		       \
     old = insn_addresses[uid];				       \
   }							       \
-}							       \
+*/}							       \
 							        
 
 
@@ -1029,10 +915,10 @@ extern struct rtx_def *legitimize_address();
 #define CASE_VECTOR_PC_RELATIVE  1
 
 /* Specify the tree operation to be used to convert reals to integers.  */
-#define IMPLICIT_FIX_EXPR FIX_ROUND_EXPR
+/* #define IMPLICIT_FIX_EXPR FIX_ROUND_EXPR */
 
 /* This is the kind of divide that is easiest to do in the general case.  */
-#define EASY_DIV_EXPR TRUNC_DIV_EXPR
+/* #define EASY_DIV_EXPR TRUNC_DIV_EXPR */
 
 /* Define this as 1 if `char' should by default be signed; else as 0.  */
 #define DEFAULT_SIGNED_CHAR 0
@@ -1043,7 +929,7 @@ extern struct rtx_def *legitimize_address();
    We actually lie a bit here as overflow conditions are different.  But
    they aren't being checked anyway.  */
 
-#define FIXUNS_TRUNC_LIKE_FIX_TRUNC
+/* #define FIXUNS_TRUNC_LIKE_FIX_TRUNC */
 
 /* Max number of bytes we can move to or from memory
    in one reasonably fast instruction.  */
@@ -1074,8 +960,6 @@ extern struct rtx_def *legitimize_address();
 
 /* Output DBX (stabs) debugging information if using -gstabs.  */
 
-#include "dbxcoff.h"
-
 /* Do not break .stabs pseudos into continuations.  */
 #define DBX_CONTIN_LENGTH 0
 
@@ -1102,8 +986,7 @@ extern struct rtx_def *legitimize_address();
    between pointers and any other objects of this machine mode.  */
 
 
-int pmode;
-#define Pmode pmode  /* set in z8k.c */
+#define Pmode (TARGET_BIG ? PSImode : HImode)
 #define Imode HImode
 /* Mode of a function address in a call instruction (for indexing purposes). */
 
@@ -1126,7 +1009,7 @@ int pmode;
 
    We only care about the cost if it is valid in an insn, so all constants
    are cheap.  */
-
+/*
 #define CONST_COSTS(RTX,CODE,OUTER_CODE) \
   case CONST_INT:						\
        if (CONST_OK_FOR_LETTER_P(INTVAL(RTX), 'I')) return 0;   \
@@ -1139,10 +1022,11 @@ int pmode;
     return 30;							\
   case CONST:  							\
     return 2;
+*/
 
 /* Provide the costs of a rtl expression.  This is in the body of a
    switch on CODE.  */
-
+/*
 #define RTX_COSTS(X,CODE,OUTER_CODE)			\
   case PLUS:						\
   case MINUS:						\
@@ -1154,6 +1038,7 @@ int pmode;
   case MOD:						\
   case UMOD:						\
       return COSTS_N_INSNS (TARGET_FAST ? 17 : 2);	
+*/
 
 /* Control the assembler format that we output.  */
 
@@ -1163,13 +1048,6 @@ int pmode;
 #define SECTION_NAME (z8k_sect.sect_name != 0 && strlen(z8k_sect.sect_name) > 0	\
                       ? z8k_sect.sect_name : "not")
 
-#define ASM_FILE_START(STREAM) 							\
-  asm_file_start (STREAM, f_options, sizeof f_options / sizeof f_options[0], \
-		     W_options, sizeof W_options / sizeof W_options[0]); 	
-
-
-
-#define ASM_FILE_END(file) asm_file_end(file)
   
 /* Output to assembler file text saying following lines
    may contain character constants, extra white space, comments, etc.  */
@@ -1192,7 +1070,7 @@ int pmode;
 
 /* Define an extra section for read-only data, a routine to enter it, and
    indicate that it is for read-only data.  */
-
+/*
 #define EXTRA_SECTIONS	readonly_data, in_ctors, in_dtors
 
 #define EXTRA_SECTION_FUNCTIONS					\
@@ -1225,17 +1103,18 @@ literal_section ()						\
 }								\
 
 #define READONLY_DATA_SECTION	literal_section
+*/
 
 #define ASM_OUTPUT_PTR(FILE,NAME) \
  do { fprintf (FILE, "\t%s\t_%s\n", TARGET_BIG ? "lval" : "wval", NAME);} while(0)
-
+/*
 #define ASM_OUTPUT_CONSTRUCTOR(FILE,NAME)	\
    do { ctors_section();  ASM_OUTPUT_PTR(FILE, NAME); } while (0)
 
 #define ASM_OUTPUT_DESTRUCTOR(FILE,NAME)	\
    do {  dtors_section(); ASM_OUTPUT_PTR(FILE, NAME); } while (0)
-
-
+*/
+/*
 #undef DO_GLOBAL_CTORS_BODY                     
 #define DO_GLOBAL_CTORS_BODY			\
 {						\
@@ -1261,7 +1140,7 @@ literal_section ()						\
       (*p)();					\
     }						\
 }						 
-
+*/
 
 
 /* How to refer to registers in assembler output.
@@ -1284,8 +1163,7 @@ literal_section ()						\
 /* This is how to output a command to make the user-level label named NAME
    defined for reference from other files.  */
 
-#define ASM_GLOBALIZE_LABEL(FILE,NAME)	\
-  do { fputs ("\tglobal\t", FILE); assemble_name (FILE, NAME); fputs ("\n", FILE);} while (0)
+#define TARGET_ASM_GLOBALIZE_LABEL z8k_asm_globalize_label
 
 /* A C statement to output to the stdio stream STREAM any text necessary
    for declaring the name of an external symbol named NAME which is referenced
@@ -1305,10 +1183,10 @@ literal_section ()						\
 
 /* This is how to output an internal numbered label where
    PREFIX is the class of label and NUM is the number within the class.  */
-
+/*
 #define ASM_OUTPUT_INTERNAL_LABEL(FILE,PREFIX,NUM)	\
     fprintf (FILE, "E%s%d:\n", PREFIX, NUM)
-
+*/
 /* This is how to output a label for a jump table.  Arguments are the same as
    for ASM_OUTPUT_INTERNAL_LABEL, except the insn for the jump table is
    passed. */
@@ -1390,7 +1268,7 @@ do { char dstr[30];					\
 
 /* This is how to output an element of a case-vector that is absolute.  */
 
-#define JUMP_TABLES_IN_TEXT_SECTION
+#define JUMP_TABLES_IN_TEXT_SECTION 1
 
 #define ASM_OUTPUT_ADDR_VEC_ELT(FILE, VALUE)  \
   fprintf (FILE, "\t%s EL%d\n", TARGET_BIG ? "lval":"wval", VALUE)
@@ -1401,7 +1279,6 @@ do { char dstr[30];					\
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL)  \
   fprintf (FILE, "\twval EL%d-EL%d\n", VALUE, REL)
 
-extern char *z8k_asm_output_opcode();
 #define ASM_OUTPUT_OPCODE(f,s) s = z8k_asm_output_opcode(f,s)
 
 /* This is how to output an assembler line
@@ -1449,20 +1326,6 @@ extern char *z8k_asm_output_opcode();
 ( (OUTPUT) = (char *) alloca (strlen ((NAME)) + 10),	\
   sprintf ((OUTPUT), "%s__%d", (NAME), (LABELNO)))
 
-/* Define the parentheses used to group arithmetic operations
-   in assembler code.  */
-
-#define ASM_OPEN_PAREN "("
-#define ASM_CLOSE_PAREN ")"
-
-/* Define results of standard character escape sequences.  */
-#define TARGET_BELL 007
-#define TARGET_BS 010
-#define TARGET_TAB 011
-#define TARGET_NEWLINE 012
-#define TARGET_VT 013
-#define TARGET_FF 014
-#define TARGET_CR 015
 
 /* Print operand X (an rtx) in assembler syntax to file FILE.
    CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
@@ -1533,23 +1396,24 @@ extern char *z8k_asm_output_opcode();
    number LINE of the current source file to the stdio stream STREAM. */
 
 /* ??? stabs-in-coff will not work until this conflict is resolved.  */
-#undef DBX_DEBUGGING_INFO
+/*#undef DBX_DEBUGGING_INFO
 #undef ASM_OUTPUT_SOURCE_LINE
 
 #define ASM_OUTPUT_SOURCE_LINE(STREAM, LINE)  				\
   (TARGET_YASM ? print_source_line(STREAM,LINE) : 			\
    fprintf (file, "\t.ln\t%d\n", ((sdb_begin_function_line > -1) 	\
 				  ? (LINE) - sdb_begin_function_line : 1)));
- 
+*/
+
   
 /* A C statement to output DBX or SDB debugging information which indicates
    that filename NAME is the current source file to the stdio stream STREAM. */
-
+/*
 #define ASM_OUTPUT_SOURCE_FILENAME(STREAM,NAME)			\
   { char *quote = TARGET_YASM ? "" : "\"";			\
     fprintf (STREAM, "	name	%s%s%s\n", quote, NAME, quote);	\
   }
-
+*/
 
 
 /* STUFF NEEDED TO DISABLE DEBUG OUTPUT */
@@ -1608,9 +1472,4 @@ do { DP { fprintf (asm_out_file, "\t.def\t");		\
 	      "%s\t.val\t.%s\t.scl\t-1%s\t.endef\n",	\
 	      SDB_DELIM, SDB_DELIM, SDB_DELIM); } } while (0)
 
-int saved_reg_on_stack_hack;
-
-#define TARGET_MEM_FUNCTIONS
-
-char *output_move64();
-extern void z8k_declare_function_name ();
+/*int saved_reg_on_stack_hack;*/
