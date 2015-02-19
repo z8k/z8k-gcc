@@ -659,9 +659,7 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
    For the z8k, any constant is a valid address */
 
 #define CONSTANT_ADDRESS_P(X)   \
-  (GET_CODE (X) == LABEL_REF || GET_CODE (X) == SYMBOL_REF		\
-   || GET_CODE (X) == CONST_INT || GET_CODE (X) == CONST		\
-   || GET_CODE (X) == HIGH)
+    (CONSTANT_P (X) && GET_CODE (X) != CONST_DOUBLE)
 
 /* Include all constant integers and constant doubles, but not
    floating-point, except for floating-point zero.  */
@@ -748,27 +746,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 #define BX_P(op) bx_p(op, IS_STRICT)
 
 
-/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
-   that is a valid memory address for an instruction.
-   The MODE argument is the machine mode for the MEM expression
-   that wants to use this address.
- 
-*/
-
-/* in any mode the z8k allows
-	(reg)			eg ld	r0,(r0)
-	(da)			eg ld  	r0,foo
-	(reg+disp)		eg ld	r0,rr2(#8)
-	(pre-dec of the sp)	eg push	sp,#9
-
-   in non huge mode we can also 
-        (pre-dec of any reg)	eg push r0,#9
-        (address+reg)		eg ld	r0,address(r0)
-   in small mode    
-	(reg+reg)		eg ld	r0,r1(r0)
-
-
-*/
 
 /* true if the value may be used as a displacement (-32768<=x<=32767)
 
@@ -780,31 +757,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 #define DATA_REF_P_1(X) data_ref_p_1(X)
 #define DATA_REF_P(X) data_ref_p(X)
 
-
-
-
-#define GO_IF_LEGITIMATE_SIMPLE_ADDRESS(MODE, X, ADDR) \
-{ if (REG_P (X) && REG_OK_FOR_BASE_P (X))	\
-    goto ADDR;					\
-  if (INSIDE_DA_P(X)) goto ADDR;		\
-  if (inside_ba_p(X,IS_STRICT)) goto ADDR;		\
-  if (GET_CODE(X) == PRE_DEC 			\
-      && MODE==HImode 				\
-      && REGNO(XEXP(X,0))==STACK_POINTER_REGNUM) goto ADDR;\
-}
-
-
-#define GO_IF_LEGITIMATE_ADDRESS(MODE, X, ADDR)              \
-{                                                            \
-  GO_IF_LEGITIMATE_SIMPLE_ADDRESS (MODE, X, ADDR); 	     \
-   if(GET_CODE(X)==PRE_DEC				     \
-       && MODE==HImode					     \
-       && REG_OK_FOR_BASE_P(XEXP(X,0))) goto ADDR; 	     \
-   if (inside_x_p(X,IS_STRICT)) goto ADDR;			     \
-   if (GET_MODE_SIZE(MODE) <= 4 && inside_bx_p(X,IS_STRICT)) goto ADDR;	    \
-}							     \
-							     \
-   							      
       
 /* Try machine-dependent ways of modifying an illegitimate address
    to be legitimate.  If we find one, return the new, valid address.

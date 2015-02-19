@@ -69,6 +69,9 @@ bool z8k_mode_dependent_address (const_rtx, addr_space_t);
 #undef TARGET_FUNCTION_VALUE_REGNO_P
 #define TARGET_FUNCTION_VALUE_REGNO_P z8k_function_value_regno_p
 
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P    z8k_legitimate_address_p
+
 
 /* Modes ok for regs, used in tm.h for HARD_REGNO_MODE_OK */
 int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
@@ -2443,5 +2446,49 @@ z8k_function_value_regno_p (const unsigned int regno)
 {
   return TARGET_STD_RET ? (regno >= 4 && regno <= 7) : regno == 2;
 }
+
+
+/* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression
+ * that is a valid memory address for an instruction.
+ * The MODE argument is the machine mode for the MEM expression
+ * that wants to use this address.
+ * 
+ */
+
+/* in any mode the z8k allows
+ * (reg)			eg ld	r0,(r0)
+ * (da)			eg ld  	r0,foo
+ * (reg+disp)		eg ld	r0,rr2(#8)
+ * (pre-dec of the sp)	eg push	sp,#9
+ * 
+ * in non huge mode we can also
+ * (pre-dec of any reg)	eg push r0,#9
+ * (address+reg)		eg ld	r0,address(r0)
+ * in small mode
+ * (reg+reg)		eg ld	r0,r1(r0)
+ * 
+ * 
+ */
+
+static bool
+z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
+{
+  if (REG_P (operand) && (!strict || REG_OK_FOR_BASE_P (operand)))
+    return true;
+  if (INSIDE_DA_P (operand)) return true;
+  if (inside_ba_p (operand, false)) return true;
+  if (GET_CODE(operand) == PRE_DEC
+    && mode == HImode
+    && REGNO (XEXP (operand, 0)) == STACK_POINTER_REGNUM) return true;
+  
+  if(GET_CODE (operand) == PRE_DEC
+    && mode == HImode
+    && (!strict || REG_OK_FOR_BASE_P(XEXP(operand,0)))) return true;
+  if (inside_x_p (operand, false)) return true;
+  if (GET_MODE_SIZE(mode) <= 4 && inside_bx_p(operand, false)) return true;
+  
+  return false;
+}
+
 
 struct gcc_target targetm = TARGET_INITIALIZER;
