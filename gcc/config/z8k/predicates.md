@@ -55,7 +55,7 @@
        (match_test "IR_P (op)")))
 
 (define_predicate "da_operand"
-  (match_operand 0 "register_operand")
+  (match_code "mem")
 {
   if (GET_CODE (op) == SUBREG)
     op = SUBREG_REG (op);
