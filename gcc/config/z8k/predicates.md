@@ -184,10 +184,11 @@
 
 
 
-(define_predicate "r_ir_da_x_ba_operand_for_di"
-  (ior (match_operand 0 "r_ir_da_x_operand")
-       (match_operand 0 "ba_operand")))
-
+;;  When operating on a DI or DF we'll always
+;;  need to get to another double word.  This makes
+;;  the ir mode not work (since 4(rn) is invalid unless
+;;  bx can also be done).  This works on the Z8002 since
+;;  x mode will suffice
 (define_predicate "r_ir_da_x_operand_for_di"
   (ior (match_operand 0 "r_operand")
        (match_operand 0 "da_operand")
@@ -198,4 +199,9 @@
 (define_predicate "r_im_ir_da_x_operand_for_di"
   (ior (match_operand 0 "r_ir_da_x_operand_for_di")
        (match_operand 0 "im_operand")))
+
+;;  Note we can ir in this one because ba is included
+(define_predicate "r_ir_da_x_ba_operand_for_di"
+  (ior (match_operand 0 "r_ir_da_x_operand")
+       (match_operand 0 "ba_operand")))
 

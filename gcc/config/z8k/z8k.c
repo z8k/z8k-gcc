@@ -1277,58 +1277,6 @@ x_p (rtx op, int strict)
   return inside_x_p (XEXP (op, 0), 0);
 }
 
-
-/* When operating on a DI or DF we'll always
-   need to get to another double word.  This makes
-   the ir mode not work (since 4(rn) is invalid unless
-   bx can also be done).  This works on the Z8002 since
-   x mode will suffice */
-/*int
-r_ir_da_x_operand_for_di (rtx op, enum machine_mode mode)
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || (TARGET_SMALL && ir_operand (op, mode))
-    || da_operand (op, mode)
-    || (TARGET_SMALL && x_operand (op, mode));
-  return r;
-
-}
-*/
-/*
-int
-r_im_ir_da_x_operand_for_di (rtx op, enum machine_mode mode)
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || im_operand (op, mode)
-    || (TARGET_SMALL && ir_operand (op, mode))
-    || da_operand (op, mode)
-    || (TARGET_SMALL && x_operand (op, mode));
-  return r;
-
-}
-*/
-
-/*
-int
-r_ir_da_x_ba_operand_for_di (rtx op, enum machine_mode mode)
-{
-  int r;
-
-  r = r_operand (op, mode)
-    || ba_operand (op, mode)
-    || ir_operand (op, mode)	/ * Note we can use this because ba is here * /
-    || da_operand (op, mode)
-    || x_operand (op, mode);
-  return r;
-
-}
-*/
-
-
 int
 move_check (rtx operands[], enum machine_mode mode)
 {
