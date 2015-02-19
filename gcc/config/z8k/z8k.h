@@ -984,6 +984,8 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define DATA_SECTION_ASM_OP (TARGET_YASM ? "\tsect\tUSRRAM" : "\t.data")
 
+#define TARGET_HAVE_NAMED_SECTIONS false
+
 /* Define an extra section for read-only data, a routine to enter it, and
    indicate that it is for read-only data.  */
 /*
