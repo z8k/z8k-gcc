@@ -385,22 +385,15 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 #define PREFERRED_RELOAD_CLASS(X, CLASS) \
    ((GET_MODE(X) == QImode) ? QI_REGS : CLASS)
 
-/* Return the register class of a scratch register needed to copy IN into
-   or out of a register in CLASS in MODE.  If it can be done directly,
-   NO_REGS is returned.  */
-
-#define SECONDARY_RELOAD_CLASS(CLASS,MODE,IN) \
-  (secondary_reload_class (CLASS, MODE, IN))
-
 
 /* Place additional restrictions on the register class to use when it
    is necessary to be able to hold a value of mode MODE in a reload
    register for which class CLASS would ordinarily be used. */
 
-/*#define LIMIT_RELOAD_CLASS(MODE, CLASS) \
+#define LIMIT_RELOAD_CLASS(MODE, CLASS) \
   ((MODE) == QImode && ((CLASS) == GENERAL_REGS) \
    ? QI_REGS : (CLASS))
-*/
+
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
 
@@ -483,35 +476,6 @@ enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) OFFSET=io(FROM,TO);
 
-
-
-
-/* Define how to find the value returned by a function.
-   VALTYPE is the data type of the value (as a tree).
-   If the precise function being called is known, FUNC is its FUNCTION_DECL;
-   otherwise, FUNC is 0.
-
-   Two ways to return on the Z8k. in r2/rr2/rq2 for HI, SI, DI stuff
-   or r7/rr6/rq4 stuff.
-
-*/
-
-#define FUNCTION_VALUE(VALTYPE, FUNC)	\
-  LIBCALL_VALUE (TYPE_MODE (VALTYPE))
-
-/* Define how to find the value returned by a library function
-   assuming the value has mode MODE.  */
-
-
-#define LIBCALL_VALUE(MODE) \
-  gen_rtx_REG (MODE, \
-	    (TARGET_STD_RET ? (GET_MODE_SIZE (MODE) <= GET_MODE_SIZE(HImode) ? 7 : \
-			       GET_MODE_SIZE (MODE) <= GET_MODE_SIZE(SImode) ? 6 : 4) : 2))
-
-/* 1 if N is a possible register number for a function value
-   as seen by the caller.  */
-
-#define FUNCTION_VALUE_REGNO_P(N) (TARGET_STD_RET ? ((N) >= 4 && ((N) <= 7)) : (N) == 2)
 
 
 /* Define a data type for recording info about an argument list

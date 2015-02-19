@@ -57,6 +57,18 @@ void z8k_function_arg_advance (cumulative_args_t, enum machine_mode, const_tree,
 bool z8k_can_eliminate (const int, const int);
 bool z8k_mode_dependent_address (const_rtx, addr_space_t);
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE		z8k_option_override
+
+#undef TARGET_SECONDARY_RELOAD
+#define TARGET_SECONDARY_RELOAD		z8k_secondary_reload
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE z8k_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE z8k_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P z8k_function_value_regno_p
+
 
 /* Modes ok for regs, used in tm.h for HARD_REGNO_MODE_OK */
 int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
@@ -636,7 +648,7 @@ fill_from_options (int value, char *def, char *string, char *into, int *order)
 }
 
 void
-override_options ()
+z8k_option_override ()
 {
   int i;
   int j;
@@ -2092,7 +2104,7 @@ z8k_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
 	}
     }
 #endif
-  return oldx;
+  return x;
 }
 
 int
@@ -2150,8 +2162,10 @@ BADSUBREG (rtx op)
    or out of a register in CLASS in MODE.  If it can be done directly,
    NO_REGS is returned.  */
 
-enum reg_class
-secondary_reload_class (enum reg_class rclass, enum machine_mode mode, rtx in)
+static reg_class_t
+z8k_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx in, 
+			     reg_class_t rclass, enum machine_mode mode, 
+			     secondary_reload_info *sri ATTRIBUTE_UNUSED)
 {
   int regno = -1;
   enum rtx_code code = GET_CODE (in);
@@ -2392,5 +2406,42 @@ z8k_mode_dependent_address (const_rtx addr, addr_space_t addr_space ATTRIBUTE_UN
   return (GET_CODE (addr) == POST_INC || GET_CODE (addr) == PRE_DEC);
 }
 
+
+/* Define how to find the value returned by a library function
+   assuming the value has mode MODE.  */
+
+static rtx
+z8k_libcall_value (enum machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return gen_rtx_REG (mode, \
+	    (TARGET_STD_RET ? (GET_MODE_SIZE (mode) <= GET_MODE_SIZE(HImode) ? 7 : \
+			       GET_MODE_SIZE (mode) <= GET_MODE_SIZE(SImode) ? 6 : 4) : 2));
+}
+
+/* Define how to find the value returned by a function.
+   VALTYPE is the data type of the value (as a tree).
+   If the precise function being called is known, FUNC is its FUNCTION_DECL;
+   otherwise, FUNC is 0.
+
+   Two ways to return on the Z8k. in r2/rr2/rq2 for HI, SI, DI stuff
+   or r7/rr6/rq4 stuff.
+
+*/
+
+static rtx
+z8k_function_value (const_tree valtype, const_tree fn_decl_or_type,
+		     bool outgoing ATTRIBUTE_UNUSED)
+{
+  return z8k_libcall_value (TYPE_MODE (valtype), NULL);
+}
+
+/* True if N is a possible register number for a function value
+   as seen by the caller.  */
+
+static bool
+z8k_function_value_regno_p (const unsigned int regno)
+{
+  return TARGET_STD_RET ? (regno >= 4 && regno <= 7) : regno == 2;
+}
 
 struct gcc_target targetm = TARGET_INITIALIZER;
