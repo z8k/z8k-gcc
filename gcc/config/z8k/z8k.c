@@ -72,6 +72,11 @@ bool z8k_mode_dependent_address (const_rtx, addr_space_t);
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P    z8k_legitimate_address_p
 
+#undef  TARGET_ASM_FILE_START
+#define TARGET_ASM_FILE_START z8k_asm_file_start
+#undef  TARGET_ASM_FILE_END
+#define TARGET_ASM_FILE_END z8k_asm_file_end
+
 
 /* Modes ok for regs, used in tm.h for HARD_REGNO_MODE_OK */
 int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
@@ -1541,41 +1546,41 @@ output_options (FILE *file, struct options *f_options, int f_len,
 }
 
 void
-asm_file_start (FILE *file, struct options *f_options, int f_len,
-		struct options *W_options, int W_len)
+z8k_asm_file_start ()
 {
+  default_file_start ();
 
-  fprintf (file, "!\tGCC  Z8000\n");
-  fprintf (file, "!\tCygnus Support\n");
-  fprintf (file, "!\tsizeof(size_t)=%d\n", TARGET_BIG ? 4 : 2);
+  fprintf (asm_out_file, "!\tGCC  Z8000\n");
+  fprintf (asm_out_file, "!\tCygnus Support 1992-1994, https://github.com/z8k/z8k-gcc 2015\n");
+  fprintf (asm_out_file, "!\tsizeof(size_t)=%d\n", TARGET_BIG ? 4 : 2);
 
-  output_file_directive (file, main_input_filename);
-  fprintf (file, "!");
-  output_options (file, f_options, f_len, W_options, W_len,
-		  0, 75, " ", "\n! ", "\n\n");
+  output_file_directive (asm_out_file, main_input_filename);
+  fprintf (asm_out_file, "!");
+  /*output_options (file, f_options, f_len, W_options, W_len,
+		  0, 75, " ", "\n! ", "\n\n");*/
 
-  fprintf (file, "\n\n");
+  fprintf (asm_out_file, "\n\n");
 
   if (TARGET_BIG)
-    fprintf (file, "\tsegm\n");
+    fprintf (asm_out_file, "\tsegm\n");
   else
-    fprintf (file, "\tunseg\n");
+    fprintf (asm_out_file, "\tunseg\n");
 
   if (TARGET_YASM)
     {
-      fprintf (file, "\trsect   USRROM\n");
-      fprintf (file, "\teven\n");
-      fprintf (file, "\trsect   USRRAM\n");
-      fprintf (file, "\teven\n");
-      fprintf (file, "\trsect   USRTXT\n");
-      fprintf (file, "\teven\n");
+      fprintf (asm_out_file, "\trsect   USRROM\n");
+      fprintf (asm_out_file, "\teven\n");
+      fprintf (asm_out_file, "\trsect   USRRAM\n");
+      fprintf (asm_out_file, "\teven\n");
+      fprintf (asm_out_file, "\trsect   USRTXT\n");
+      fprintf (asm_out_file, "\teven\n");
     }
 
-  load_source_file (input_filename);
+  /*load_source_file (input_filename);*/
 }
 
 void
-asm_file_end (FILE *file)
+z8k_asm_file_end ()
 {
   if (TARGET_YASM)
     {
@@ -1588,13 +1593,13 @@ asm_file_end (FILE *file)
 	  if (!TREE_ASM_WRITTEN (name_tree))
 	    {
 	      TREE_ASM_WRITTEN (name_tree) = 1;
-	      fputs ("\textern\t", file);
-	      assemble_name (file, p->name);
-	      fputs ("\n", file);
+	      fputs ("\textern\t", asm_out_file);
+	      assemble_name (asm_out_file, p->name);
+	      fputs ("\n", asm_out_file);
 	    }
 	}
 
-      fprintf (file, "\tend\n");
+      fprintf (asm_out_file, "\tend\n");
     }
 }
 
