@@ -1951,10 +1951,11 @@ z8k_declare_function_name (FILE *file, const char *name, tree decl)
 {
   int reg_count;
   int parm_size = 0;
+  int live_regs_mask;
   tree parms;
 
   /* Figure out how many registers are saved.  */
-  calc_live_regs (&reg_count);
+  live_regs_mask = calc_live_regs (&reg_count);
 
   /* Find parameters which are passed in registers, but live on
      this function's stack.  */
@@ -1972,6 +1973,7 @@ z8k_declare_function_name (FILE *file, const char *name, tree decl)
 	   (reg_count * 2 + get_frame_size ()
 	    + crtl->args.pretend_args_size));
   fprintf (file, "! register saves: %d bytes\n", reg_count * 2);
+  fprintf (file, "! live registers: 0x%04x\n", live_regs_mask);
   fprintf (file, "! automatics, spills, etc: %d bytes\n",
 	   get_frame_size () - parm_size);
   fprintf (file, "! parameters: %d bytes\n", parm_size);
