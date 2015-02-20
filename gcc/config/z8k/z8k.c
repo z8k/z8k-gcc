@@ -1845,7 +1845,7 @@ push_regs (int mask)
 	}
     }
 
-  for (i = 0; i < FIRST_PSEUDO_REGISTER; i+=2)
+  for (i = 0; i < FIRST_PSEUDO_REGISTER-1; i+=2)
     {
       if (exregs[i] && exregs[i+1])
 	{
