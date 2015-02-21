@@ -2445,7 +2445,7 @@ z8k_function_value_regno_p (const unsigned int regno)
 static bool
 z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
 {
-  if (REG_P (operand) && (!strict || z8k_reg_ok_for_base_p (operand)))
+  if (REG_P (operand) && z8k_reg_ok_for_base_p (operand))
     return true;
   if (INSIDE_DA_P (operand)) return true;
   if (inside_ba_p (operand, strict)) return true;
@@ -2455,7 +2455,7 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
   
   if(GET_CODE (operand) == PRE_DEC
     && mode == HImode
-    && (!strict || z8k_reg_ok_for_base_p (XEXP(operand,0)))) return true;
+    && z8k_reg_ok_for_base_p (XEXP(operand,0))) return true;
   if (inside_x_p (operand, strict)) return true;
   if (GET_MODE_SIZE(mode) <= 4 && inside_bx_p(operand, strict)) return true;
   
