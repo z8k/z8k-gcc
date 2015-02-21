@@ -1114,70 +1114,6 @@ z8k_reg_ok_for_base_p (rtx op)
          && (REGNO (op) > FIRST_PSEUDO_REGISTER || (REGNO (op) != 0));
 }
 
-int
-find_reg (rtx op, bool strict)
-{
-  int rn = REGNO (op);
-  
-  if (!strict)
-    return 1;
-
-  if (!reg_renumber)
-    return -1;
-    
-  if (rn < FIRST_PSEUDO_REGISTER)
-    return rn;
-
-  return reg_renumber[rn];
-}
-
-bool
-ok_for_base (rtx op, bool strict)
-{
-  int rn;
-  if (GET_CODE (op) != REG)
-    return false;
-  if (GET_MODE (op) != Pmode)
-    return false;
-  rn = find_reg (op, strict);
-
-  if (reload_in_progress && rn > FIRST_PSEUDO_REGISTER)
-    return true;
-
-  if (strict)
-    {
-      if (rn <= 0)
-	return false;
-      return true;
-    }
-  else
-    {
-      return rn != 0;
-    }
-}
-
-bool
-ok_for_index (rtx op, bool strict)
-{
-  int rn;
-  if (GET_CODE (op) != REG)
-    return false;
-  if (GET_MODE (op) != HImode
-      && GET_MODE (op) != Pmode)
-    return false;
-  rn = find_reg (op, strict);
-  if (strict)
-    {
-      if (rn <= 0)
-	return false;
-      return true;
-    }
-  else
-    {
-      return rn != 0;
-    }
-}
-
 bool
 inside_bx_p (rtx op, bool strict)
 {
@@ -1185,26 +1121,26 @@ inside_bx_p (rtx op, bool strict)
     {
       rtx lhs = XEXP (op, 0);
       rtx rhs = XEXP (op, 1);
-      if (ok_for_base (rhs, strict))
+      if (z8k_regno_ok_for_base_p (REGNO (rhs), strict))
 	{
 	  if (GET_CODE (lhs) == TRUNCATE)
 	    lhs = XEXP (lhs, 0);
 	  if (GET_CODE (lhs) == SIGN_EXTEND)
 	    {
 	      lhs = XEXP (lhs, 0);
-	      if (ok_for_index (lhs, strict))
+	      if (z8k_regno_ok_for_index_p (REGNO (lhs), strict))
 		return true;
 	    }
 	}
 
-      if (ok_for_base (lhs, strict))
+      if (z8k_regno_ok_for_base_p (REGNO (lhs), strict))
 	{
 	  if (GET_CODE (rhs) == TRUNCATE)
 	    rhs = XEXP (rhs, 0);
 	  if (GET_CODE (rhs) == SIGN_EXTEND)
 	    {
 	      rhs = XEXP (rhs, 0);
-	      if (ok_for_index (rhs, strict))
+	      if (z8k_regno_ok_for_index_p (REGNO (rhs), strict))
 		return true;
 	    }
 	}
@@ -1223,17 +1159,19 @@ inside_x_p (rtx op, bool strict)
       rtx rhs = XEXP (op, 1);
       if (TARGET_SMALL)
 	{
-	  if (GET_CODE (lhs) == CONST_INT && ok_for_index (rhs, strict))
+	  if (GET_CODE (lhs) == CONST_INT
+	      && z8k_regno_ok_for_index_p (REGNO (rhs), strict))
 	    return true;
 
-	  if (GET_CODE (rhs) == CONST_INT && ok_for_index (lhs, strict))
+	  if (GET_CODE (rhs) == CONST_INT
+	      && z8k_regno_ok_for_index_p (REGNO (lhs), strict))
 	    return true;
 	}
 
       if (data_ref_p (lhs))
 	{
 
-	  if (ok_for_index (rhs, strict))
+	  if (z8k_regno_ok_for_index_p (REGNO (rhs), strict))
 	    {
 	      return true;
 	    }
@@ -1241,7 +1179,7 @@ inside_x_p (rtx op, bool strict)
 
       if (data_ref_p (rhs))
 	{
-	  if (ok_for_index (lhs, strict))
+	  if (z8k_regno_ok_for_index_p (REGNO (lhs), strict))
 	    {
 	      return true;
 	    }
@@ -1266,7 +1204,7 @@ inside_ba_p (rtx op, bool strict)
     {
       rtx lhs = XEXP (op, 0);
       rtx rhs = XEXP (op, 1);
-      if (ok_for_base (lhs, strict))
+      if (z8k_regno_ok_for_base_p (REGNO (lhs), strict))
 	{
 	  if (GET_CODE (rhs) == CONST_INT)
 	    {
