@@ -1387,6 +1387,10 @@ calc_live_regs (int *count)
   return live_regs_mask;
 }
 
+/* INITIAL_ELIMINATION_OFFSET specifies the initial difference
+   between the specified pair of registers, and must be defined
+   if ELIMINABLE_REGS is defined.
+*/
 int
 io (int from, int to)
 {
@@ -1420,6 +1424,9 @@ io (int from, int to)
     {
       return total_saved_regs_space + total_auto_space;
     }
+
+  /* Each pair of registers in ELIMINABLE_REGS has been described. */
+  gcc_unreachable();
 }
 
 int
