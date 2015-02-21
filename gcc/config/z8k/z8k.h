@@ -662,42 +662,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define TARGET_LEGITIMATE_CONSTANT_P z8k_legitimate_constant_p
 
-/* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
-   and check its validity for a certain class.
-   We have two alternate definitions for each of them.
-   The usual definition accepts all pseudo regs; the other rejects
-   them unless they have been allocated suitable hard regs.
-   The symbol REG_OK_STRICT causes the latter definition to be used.
-
-   Most source files want to accept pseudo regs in the hope that
-   they will get allocated to the class that the insn wants them to be in.
-   Source files for reload pass need to be strict.
-   After reload, it makes no difference, since pseudo regs have
-   been eliminated by then.  */
-
-#ifndef REG_OK_STRICT
-
-#define IS_STRICT 0
-/* Nonzero if X is a hard reg that can be used as an index
-   or if it is a pseudo reg.  */
-#define REG_OK_FOR_INDEX_P(X) 
-
-/* Nonzero if X is a hard reg that can be used as a base reg
-   or if it is a pseudo reg.  */
-#define REG_OK_FOR_BASE_P(X) \
-  ( GET_MODE(X) == Pmode && ( REGNO(X) > FIRST_PSEUDO_REGISTER || (REGNO(X) != 0)))
-
-#else
-#define IS_STRICT 1
-/* Nonzero if X is a hard reg that can be used as an index.  */
-#define REG_OK_FOR_INDEX_P(X) REGNO_OK_FOR_INDEX_P (REGNO (X))
-/* Nonzero if X is a hard reg that can be used as a base reg.  */
-#define REG_OK_FOR_BASE_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
-
-
-#endif
-
-
 #define INSIDE(op,side) XEXP(op,side)
 
 #define INSIDE_DA_P(op) DATA_REF_P(op)

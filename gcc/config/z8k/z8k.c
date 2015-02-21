@@ -1100,6 +1100,16 @@ emit_move (rtx operands[], enum machine_mode mode, int extra)
   return 0;
 }
 
+/* True if X is a hard reg that can be used as a base reg
+   or if it is a pseudo reg.  */
+
+static bool
+z8k_reg_ok_for_base_p (rtx op)
+{
+  return GET_MODE(op) == Pmode
+         && (REGNO (op) > FIRST_PSEUDO_REGISTER || (REGNO (op) != 0));
+}
+
 int
 find_reg (rtx op, bool strict)
 {
@@ -1313,9 +1323,9 @@ ir_p (rtx op, bool strict)
 {
   if (GET_CODE(op) != MEM)
     return false;
-  return (REG_P (XEXP (op, 0)) && REG_OK_FOR_BASE_P (XEXP (op, 0))) 
-         || (reload_in_progress && GET_CODE (XEXP (op, 0)) == REG
-             && REGNO (op) >= FIRST_PSEUDO_REGISTER);
+  return (REG_P (XEXP (op, 0)) && z8k_reg_ok_for_base_p (XEXP (op, 0))) 
+          || (reload_in_progress && GET_CODE (XEXP (op, 0)) == REG
+              && REGNO (op) >= FIRST_PSEUDO_REGISTER);
 }
 
 bool
@@ -2493,7 +2503,7 @@ z8k_function_value_regno_p (const unsigned int regno)
 static bool
 z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
 {
-  if (REG_P (operand) && (!strict || REG_OK_FOR_BASE_P (operand)))
+  if (REG_P (operand) && (!strict || z8k_reg_ok_for_base_p (operand)))
     return true;
   if (INSIDE_DA_P (operand)) return true;
   if (inside_ba_p (operand, strict)) return true;
@@ -2503,7 +2513,7 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
   
   if(GET_CODE (operand) == PRE_DEC
     && mode == HImode
-    && (!strict || REG_OK_FOR_BASE_P(XEXP(operand,0)))) return true;
+    && (!strict || z8k_reg_ok_for_base_p (XEXP(operand,0)))) return true;
   if (inside_x_p (operand, strict)) return true;
   if (GET_MODE_SIZE(mode) <= 4 && inside_bx_p(operand, strict)) return true;
   
