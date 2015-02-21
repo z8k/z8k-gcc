@@ -71,29 +71,23 @@
   if (GET_CODE (op) == SUBREG)
     op = SUBREG_REG (op);
 
-  return X_P (op);
+  return x_p (op, false);
 })
 
 (define_predicate "ba_operand"
-  (and (match_operand 0 "register_operand")
+  (and (match_code "mem")
        (match_test "! BADSUBREG (op)"))
 {
   if (GET_CODE (op) == SUBREG)
     op = SUBREG_REG (op);
 
-  if (ba_p (op, 0))
-    return 1;
-  return 0;
+  return ba_p (op, false);
 })
 
 (define_predicate "bx_operand"
-  (and (match_operand 0 "register_operand")
-       (match_test "! BADSUBREG (op)"))
-{
-  if (bx_p (op, 0))
-    return 1;
-  return 0;
-})
+  (and (match_code "mem")
+       (match_test "! BADSUBREG (op)")
+       (match_test "bx_p (op, false)")))
 
 (define_predicate "poi_operand"
   (match_code "mem")
