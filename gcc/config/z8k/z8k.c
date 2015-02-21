@@ -69,8 +69,17 @@ bool z8k_mode_dependent_address (const_rtx, addr_space_t);
 #undef TARGET_FUNCTION_VALUE_REGNO_P
 #define TARGET_FUNCTION_VALUE_REGNO_P z8k_function_value_regno_p
 
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS z8k_legitimize_address
+
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P z8k_mode_dependent_address
+
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P    z8k_legitimate_address_p
+
+#undef TARGET_ADDRESS_COST
+#define TARGET_ADDRESS_COST z8k_address_cost
 
 #undef  TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START z8k_asm_file_start
@@ -2018,6 +2027,12 @@ z8k_expand_epilogue ()
   current_function_anonymous_args = 0;
 }
 
+/* Compute the cost of an address. */
+
+/* For z8k, it is better to use a complex address than let gcc copy
+   the address into a reg and make a new pseudo.  But not if the address
+   requires to two regs - that would mean more pseudos with longer
+   lifetimes.  */
 
 int
 z8k_address_cost (rtx op, enum machine_mode mode, addr_space_t as, bool speed)
@@ -2041,6 +2056,16 @@ int COM_POWER_OF_2 (int value)
   return POWER_OF_2 (~(value | (~0xffff)));
 }
 
+
+/* This hook is given an invalid memory address x for an operand of mode
+   mode and should try to return a valid memory address.
+
+   x will always be the result of a call to break_out_memory_refs, and
+   oldx will be the operand that was given to that function to produce x.
+
+   The code of the hook should not alter the substructure of x. If it
+   transforms x into a more legitimate form, it should return the new x.
+*/
 
 rtx
 z8k_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
@@ -2354,6 +2379,12 @@ z8k_can_eliminate (const int from, const int to)
 		|| ((from) == ARG_POINTER_REGNUM && (to) == FRAME_POINTER_REGNUM)
 		|| ((from) == RETURN_ADDRESS_POINTER_REGNUM && (to) == FRAME_POINTER_REGNUM));
 }
+
+
+/* Return whether ADDR (a legitimate address expression)
+   has an effect that depends on the machine mode it is used for.
+
+   For the z8k, pushing and popping needs to know the mode */
 
 bool
 z8k_mode_dependent_address (const_rtx addr, addr_space_t addr_space ATTRIBUTE_UNUSED) {

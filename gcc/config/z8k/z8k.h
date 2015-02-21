@@ -753,46 +753,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 #define DATA_REF_P_1(X) data_ref_p_1(X)
 #define DATA_REF_P(X) data_ref_p(X)
 
-      
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.
-
-*/
-
-#define TARGET_LEGITIMIZE_ADDRESS z8k_legitimize_address
-
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.
-
-
-   For the z8k, pushing and poping needs to know the mode */
-
-#define TARGET_MODE_DEPENDENT_ADDRESS_P z8k_mode_dependent_address
-/*
-#define GO_IF_MODE_DEPENDENT_ADDRESS(A,L)	\
- { if (GET_CODE (A) == POST_INC || GET_CODE (A) == PRE_DEC) goto L;  }
-*/
-
-
-/* Compute the cost of an address. */
-
-/* For z8k, it is better to use a complex address than let gcc copy
-   the address into a reg and make a new pseudo.  But not if the address
-   requires to two regs - that would mean more pseudos with longer
-   lifetimes.  */
-
-#define TARGET_ADDRESS_COST z8k_address_cost
 
 
 /* Define this if some processing needs to be done immediately before
