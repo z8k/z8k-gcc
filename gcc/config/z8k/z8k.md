@@ -1957,7 +1957,7 @@ if (GET_CODE (operands[2]) != CONST_INT
 (define_insn "return"
   [(return)]
   "reload_completed"
-  "* return TARGET_YASM ? \"ret\" : \"ret	t\";"
+  "* return \"ret	t\";"
   [(set_attr "type" "return")
    (set_attr "length" "2")
    (set_attr "cond" "trashcc")])

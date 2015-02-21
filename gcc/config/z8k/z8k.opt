@@ -82,9 +82,6 @@ Target Report Mask(STD_RET)
 mstd
 Target Report Mask(STD)
 
-myasm
-Target Report Mask(YASM)
-
 mpb
 Target Report Mask(PCCBITF)
 

@@ -906,11 +906,10 @@ z8k_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
       return 0;
     }
 
-  /* Varargs always go on stack, unless in YASM mode*/
-  if (!TARGET_YASM)
+  /* Varargs always go on stack */
+  if (!named)
     {
-      if (!named)
-	return 0;
+      return 0;
     }
 
   /* Never put a struct in regs - one reason is that calls.c doesn't
@@ -971,12 +970,6 @@ z8k_builtin_saveregs (tree arglist)
 void
 asm_output_local (FILE *file, const char *name, int size, int rounded)
 {
-  if (TARGET_YASM)
-    {
-      tree name_tree = get_identifier (name);
-      TREE_ASM_WRITTEN (name_tree) = 1;
-    }
-
   switch_to_section (data_section);
   assemble_name (file, name);
   fprintf (file, ":\n\tblock\t%u\n", rounded);
@@ -985,33 +978,14 @@ asm_output_local (FILE *file, const char *name, int size, int rounded)
 void
 asm_output_common (FILE *file, const char *name, int size, int rounded)
 {
-  if (TARGET_YASM)
-    {
-      switch_to_section (data_section);
-      if (size > 1)
-      {
-          ASM_OUTPUT_ALIGN (file, 1);
-      }
-      TARGET_ASM_GLOBALIZE_LABEL (file, name);
-      ASM_OUTPUT_LOCAL (file, name, size, rounded);
-    }
-  else
-    {
-      fputs (".comm ", file);
-      assemble_name (file, name);
-      fprintf (file, ",%u\n", rounded);
-    }
+  fputs (".comm ", file);
+  assemble_name (file, name);
+  fprintf (file, ",%u\n", rounded);
 }
 
 void
 asm_output_name (FILE *file, const char *name)
 {
-  if (TARGET_YASM)
-    {
-      tree name_tree = get_identifier (name);
-      TREE_ASM_WRITTEN (name_tree) = 1;
-    }
-
   ASM_OUTPUT_LABEL (asm_out_file, name);
 }
 
@@ -1588,41 +1562,12 @@ z8k_asm_file_start ()
   else
     fprintf (asm_out_file, "\tunseg\n");
 
-  if (TARGET_YASM)
-    {
-      fprintf (asm_out_file, "\trsect   USRROM\n");
-      fprintf (asm_out_file, "\teven\n");
-      fprintf (asm_out_file, "\trsect   USRRAM\n");
-      fprintf (asm_out_file, "\teven\n");
-      fprintf (asm_out_file, "\trsect   USRTXT\n");
-      fprintf (asm_out_file, "\teven\n");
-    }
-
   /*load_source_file (input_filename);*/
 }
 
 void
 z8k_asm_file_end ()
 {
-  if (TARGET_YASM)
-    {
-      struct extern_list *p;
-
-      for (p = extern_head; p != 0; p = p->next)
-	{
-	  tree name_tree = get_identifier (p->name);
-
-	  if (!TREE_ASM_WRITTEN (name_tree))
-	    {
-	      TREE_ASM_WRITTEN (name_tree) = 1;
-	      fputs ("\textern\t", asm_out_file);
-	      assemble_name (asm_out_file, p->name);
-	      fputs ("\n", asm_out_file);
-	    }
-	}
-
-      fprintf (asm_out_file, "\tend\n");
-    }
 }
 
 
@@ -2216,61 +2161,31 @@ moveok (rtx *operands, enum machine_mode mode)
 void asm_output_ascii (FILE *file, const char *p, int size)
 {
   int i, col;
-  if (TARGET_YASM)
-    {
-      int max_buffer_size = 70;
-      fprintf (file, "\tsval\t'");
-      for (i = col = 0; i < size; i++, col++)
-	{
-	  register unsigned int c = (p[i] & 0xff);
-	  if (c != ';' && c != '\\' && c != '\'' && c != '\"' && c != '%' && c >= ' ' && c < 0177)
-	    putc (c, file);
-	  else
-	    fprintf (file, "%%%02x", c);
-	  /* If line is too long split the line */
-	  if (col > max_buffer_size && i < size - 1)
-	    {
-	      fprintf (file, "'\n\tsval\t'");
-	      col = 0;
-	    }
-	}
-      fprintf (file, "\047\n");
-    }
-  else
-    {
-      FILE *_hide_asm_out_file = file;
-      unsigned char *_hide_p = (unsigned char *) p;
-      int _hide_thissize = size;
-      {
-	FILE *asm_out_file = _hide_asm_out_file;
-	unsigned char *p = _hide_p;
-	int thissize = _hide_thissize;
-	int i;
-	fprintf (asm_out_file, "\t.ascii \"");
 
-	for (i = 0; i < thissize; i++)
-	  {
-	    register int c = p[i];
-	    if (c == '\"' || c == '\\')
-	      putc ('\\', asm_out_file);
-	    if (c >= ' ' && c < 0177)
-	      putc (c, asm_out_file);
-	    else
-	      {
-		fprintf (asm_out_file, "\\%o", c);
-		/* After an octal-escape, if a digit follows,
-		   terminate one string constant and start another.
-		   The Vax assembler fails to stop reading the escape
-		   after three digits, so this is the only way we
-		   can get it to parse the data properly.  */
-		if (i < thissize - 1
-		    && p[i + 1] >= '0' && p[i + 1] <= '9')
-		  fprintf (asm_out_file, "\"\n\t.ascii \"");
-	      }
-	  }
-	fprintf (asm_out_file, "\"\n");
-      }
+  fprintf (asm_out_file, "\t.ascii \"");
+
+  for (i = 0; i < size; i++)
+    {
+      int c = p[i];
+      if (c == '\"' || c == '\\')
+	putc ('\\', asm_out_file);
+      if (c >= ' ' && c < 0177)
+	putc (c, asm_out_file);
+      else
+	{
+	  fprintf (asm_out_file, "\\%o", c);
+	  /* After an octal-escape, if a digit follows,
+	     terminate one string constant and start another.
+	     The Vax assembler fails to stop reading the escape
+	     after three digits, so this is the only way we
+	     can get it to parse the data properly.  */
+	  if (i < size - 1
+	      && p[i + 1] >= '0' && p[i + 1] <= '9')
+	        fprintf (asm_out_file, "\"\n\t.ascii \"");
+	}
     }
+  fprintf (asm_out_file, "\"\n");
+
 }
 
 /* Keep track of all externs, so that we can output an .extern declaration

@@ -856,14 +856,14 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define ASM_APP_OFF ""
 
-#define TEXT_SECTION_ASM_OP 		(TARGET_YASM ? "\trsect\tUSRROM" : "\t.text")
-#define CTORS_SECTION_ASM_OP 		(TARGET_YASM ?"\trsect\t.CTORS" : "\t.section\t.ctors")
-#define DTORS_SECTION_ASM_OP 		(TARGET_YASM ?"\trsect\t.DTORS" : "\t.section\t.dtors")
-#define READONLY_DATA_SECTION_ASM_OP  	(TARGET_YASM ? "\trsect\tUSRROM" : "\tsect .rdata")
-#define INIT_SECTION_ASM_OP 		(TARGET_YASM ? "\trsect\tINIT" : "\t.init")
+#define TEXT_SECTION_ASM_OP 		"\t.text"
+#define CTORS_SECTION_ASM_OP 		"\t.section\t.ctors"
+#define DTORS_SECTION_ASM_OP 		"\t.section\t.dtors"
+#define READONLY_DATA_SECTION_ASM_OP  	"\tsect .rdata"
+#define INIT_SECTION_ASM_OP 		"\t.init"
 /* Output before writable data.  */
 
-#define DATA_SECTION_ASM_OP (TARGET_YASM ? "\tsect\tUSRRAM" : "\t.data")
+#define DATA_SECTION_ASM_OP "\t.data"
 
 #define TARGET_HAVE_NAMED_SECTIONS false
 
@@ -964,21 +964,11 @@ literal_section ()						\
 
 #define TARGET_ASM_GLOBALIZE_LABEL z8k_asm_globalize_label
 
-/* A C statement to output to the stdio stream STREAM any text necessary
-   for declaring the name of an external symbol named NAME which is referenced
-   in this compilation but not defined. */
-#define ASM_OUTPUT_EXTERNAL(FILE,DECL,NAME)\
-   do { if (TARGET_YASM) z8k_output_external (NAME); } while (0)
-
-/* Similar, but for libcalls.  */
-#define ASM_OUTPUT_EXTERNAL_LIBCALL(FILE, FUN) \
-   do { if (TARGET_YASM) z8k_output_external (XSTR (FUN, 0)); } while (0)
-
 /* This is how to output a reference to a user-level label named NAME.
    `assemble_name' uses this.  */
 
 #define ASM_OUTPUT_LABELREF(FILE,NAME)	\
-  fprintf (FILE, TARGET_YASM ? "%s" : "_%s", NAME)
+  fprintf (FILE, "_%s", NAME)
 
 /* This is how to output an internal numbered label where
    PREFIX is the class of label and NUM is the number within the class.  */
@@ -1199,8 +1189,7 @@ do { char dstr[30];					\
 #undef ASM_OUTPUT_SOURCE_LINE
 
 #define ASM_OUTPUT_SOURCE_LINE(STREAM, LINE)  				\
-  (TARGET_YASM ? print_source_line(STREAM,LINE) : 			\
-   fprintf (file, "\t.ln\t%d\n", ((sdb_begin_function_line > -1) 	\
+  (fprintf (file, "\t.ln\t%d\n", ((sdb_begin_function_line > -1) 	\
 				  ? (LINE) - sdb_begin_function_line : 1)));
 */
 
@@ -1209,7 +1198,7 @@ do { char dstr[30];					\
    that filename NAME is the current source file to the stdio stream STREAM. */
 /*
 #define ASM_OUTPUT_SOURCE_FILENAME(STREAM,NAME)			\
-  { char *quote = TARGET_YASM ? "" : "\"";			\
+  { char *quote = "\"";			\
     fprintf (STREAM, "	name	%s%s%s\n", quote, NAME, quote);	\
   }
 */
@@ -1217,7 +1206,7 @@ do { char dstr[30];					\
 
 /* STUFF NEEDED TO DISABLE DEBUG OUTPUT */
 
-#define DP if (!TARGET_YASM || TARGET_DEFS) 
+#define DP if (!TARGET_DEFS) 
 
 #define PUT_SDB_SCL(a)     DP fprintf(asm_out_file, "\t.scl\t%d%s", (a), SDB_DELIM)
 #define PUT_SDB_INT_VAL(a) DP fprintf (asm_out_file, "\t.val\t%d%s", (a), SDB_DELIM)
