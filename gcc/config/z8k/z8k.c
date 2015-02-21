@@ -1090,36 +1090,41 @@ emit_move (rtx operands[], enum machine_mode mode, int extra)
   return 0;
 }
 
-
 int
-find_reg (rtx op, int strict)
+find_reg (rtx op, bool strict)
 {
   int rn = REGNO (op);
-  if (strict && reg_renumber == 0)
-    abort ();
-  if (strict && rn >= FIRST_PSEUDO_REGISTER)
-    return reg_renumber[rn];
-  return rn;
+  
+  if (!strict)
+    return 1;
+
+  if (!reg_renumber)
+    return -1;
+    
+  if (rn < FIRST_PSEUDO_REGISTER)
+    return rn;
+
+  return reg_renumber[rn];
 }
 
-int
-ok_for_base (rtx op, int strict)
+bool
+ok_for_base (rtx op, bool strict)
 {
   int rn;
   if (GET_CODE (op) != REG)
-    return 0;
+    return false;
   if (GET_MODE (op) != Pmode)
-    return 0;
+    return false;
   rn = find_reg (op, strict);
 
   if (reload_in_progress && rn > FIRST_PSEUDO_REGISTER)
-    return 1;
+    return true;
 
   if (strict)
     {
       if (rn <= 0)
-	return 0;
-      return 1;
+	return false;
+      return true;
     }
   else
     {
@@ -1127,21 +1132,21 @@ ok_for_base (rtx op, int strict)
     }
 }
 
-int
-ok_for_index (rtx op, int strict)
+bool
+ok_for_index (rtx op, bool strict)
 {
   int rn;
   if (GET_CODE (op) != REG)
-    return 0;
+    return false;
   if (GET_MODE (op) != HImode
       && GET_MODE (op) != Pmode)
-    return 0;
+    return false;
   rn = find_reg (op, strict);
   if (strict)
     {
       if (rn <= 0)
-	return 0;
-      return 1;
+	return false;
+      return true;
     }
   else
     {
@@ -1149,8 +1154,8 @@ ok_for_index (rtx op, int strict)
     }
 }
 
-int
-inside_bx_p (rtx op, int strict)
+bool
+inside_bx_p (rtx op, bool strict)
 {
   if (GET_CODE (op) == PLUS)
     {
@@ -1164,7 +1169,7 @@ inside_bx_p (rtx op, int strict)
 	    {
 	      lhs = XEXP (lhs, 0);
 	      if (ok_for_index (lhs, strict))
-		return 1;
+		return true;
 	    }
 	}
 
@@ -1176,20 +1181,18 @@ inside_bx_p (rtx op, int strict)
 	    {
 	      rhs = XEXP (rhs, 0);
 	      if (ok_for_index (rhs, strict))
-		return 1;
+		return true;
 	    }
 	}
     }
-  return 0;
+  return false;
 }
 
 
 /* 16 bit register + pointer sized address */
-int
-inside_x_p (rtx op, int strict)
+bool
+inside_x_p (rtx op, bool strict)
 {
-  if (strict != 0 && strict != 1)
-    abort ();
   if (GET_CODE (op) == PLUS)
     {
       rtx lhs = XEXP (op, 0);
@@ -1197,10 +1200,10 @@ inside_x_p (rtx op, int strict)
       if (TARGET_SMALL)
 	{
 	  if (GET_CODE (lhs) == CONST_INT && ok_for_index (rhs, strict))
-	    return 1;
+	    return true;
 
 	  if (GET_CODE (rhs) == CONST_INT && ok_for_index (lhs, strict))
-	    return 1;
+	    return true;
 	}
 
       if (data_ref_p (lhs))
@@ -1208,7 +1211,7 @@ inside_x_p (rtx op, int strict)
 
 	  if (ok_for_index (rhs, strict))
 	    {
-	      return 1;
+	      return true;
 	    }
 	}
 
@@ -1216,12 +1219,12 @@ inside_x_p (rtx op, int strict)
 	{
 	  if (ok_for_index (lhs, strict))
 	    {
-	      return 1;
+	      return true;
 	    }
 	}
 
     }
-  return 0;
+  return false;
 }
 
 int
@@ -1232,11 +1235,9 @@ inside_da_p (rtx op, int strict)
   return 0;
 }
 
-int
-inside_ba_p (rtx op, int strict)
+bool
+inside_ba_p (rtx op, bool strict)
 {
-  if (strict != 0 && strict != 1)
-    abort ();
   if (GET_CODE (op) == PLUS)
     {
       rtx lhs = XEXP (op, 0);
@@ -1246,40 +1247,36 @@ inside_ba_p (rtx op, int strict)
 	  if (GET_CODE (rhs) == CONST_INT)
 	    {
 	      if (INTVAL (rhs) & 1)
-		return 0;
-	      return 1;
+		return false;
+	      return true;
 	    }
 	}
     }
-  return 0;
+  return false;
 }
 
-int
-bx_p (rtx op, int strict)
+bool
+bx_p (rtx op, bool strict)
 {
-  if (strict != 0 && strict != 1)
-    abort ();
   if (GET_CODE (op) != MEM)
-    return 0;
+    return false;
   return inside_bx_p (XEXP (op, 0), strict);
 }
 
-int
-ba_p (rtx op, int strict)
+bool
+ba_p (rtx op, bool strict)
 {
-  if (strict != 0 && strict != 1)
-    abort ();
   if (GET_CODE (op) != MEM)
-    return 0;
+    return false;
   return inside_ba_p (XEXP (op, 0), strict);
 }
 
-int
-x_p (rtx op, int strict)
+bool
+x_p (rtx op, bool strict)
 {
   if (GET_CODE (op) != MEM)
-    return 0;
-  return inside_x_p (XEXP (op, 0), 0);
+    return false;
+  return inside_x_p (XEXP (op, 0), strict);
 }
 
 int
@@ -1471,7 +1468,6 @@ z8k_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
     }
 
   *cum--;
-
 }
 
 /* Stuff taken from m88k.c */
@@ -2431,7 +2427,7 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
   if (REG_P (operand) && (!strict || REG_OK_FOR_BASE_P (operand)))
     return true;
   if (INSIDE_DA_P (operand)) return true;
-  if (inside_ba_p (operand, false)) return true;
+  if (inside_ba_p (operand, strict)) return true;
   if (GET_CODE(operand) == PRE_DEC
     && mode == HImode
     && REGNO (XEXP (operand, 0)) == STACK_POINTER_REGNUM) return true;
@@ -2439,8 +2435,8 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
   if(GET_CODE (operand) == PRE_DEC
     && mode == HImode
     && (!strict || REG_OK_FOR_BASE_P(XEXP(operand,0)))) return true;
-  if (inside_x_p (operand, false)) return true;
-  if (GET_MODE_SIZE(mode) <= 4 && inside_bx_p(operand, false)) return true;
+  if (inside_x_p (operand, strict)) return true;
+  if (GET_MODE_SIZE(mode) <= 4 && inside_bx_p(operand, strict)) return true;
   
   return false;
 }

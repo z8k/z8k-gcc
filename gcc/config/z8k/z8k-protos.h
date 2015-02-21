@@ -36,13 +36,13 @@ void asm_output_ascii (FILE *, const char *, int);
 const char * z8k_asm_output_opcode(FILE *, const char *);
 
 int data_ref_p (rtx);
-int bx_p (rtx, int);
-int ba_p (rtx, int);
-int x_p (rtx, int);
+bool bx_p (rtx, bool);
+bool ba_p (rtx, bool);
+bool x_p (rtx, bool);
 
-int inside_ba_p (rtx, int);
-int inside_bx_p (rtx, int);
-int inside_x_p (rtx, int);
+bool inside_ba_p (rtx, bool);
+bool inside_bx_p (rtx, bool);
+bool inside_x_p (rtx, bool);
 int io (int, int);
 
 void z8k_output_external (const char *);
