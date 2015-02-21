@@ -38,6 +38,8 @@ const char * z8k_asm_output_opcode(FILE *, const char *);
 int data_ref_p (rtx);
 bool bx_p (rtx, bool);
 bool ba_p (rtx, bool);
+bool da_p (rtx, bool);
+bool ir_p (rtx, bool);
 bool x_p (rtx, bool);
 
 bool inside_ba_p (rtx, bool);

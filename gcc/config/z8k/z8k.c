@@ -57,6 +57,7 @@ void z8k_function_arg_advance (cumulative_args_t, enum machine_mode, const_tree,
 bool z8k_can_eliminate (const int, const int);
 bool z8k_mode_dependent_address (const_rtx, addr_space_t);
 
+
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE		z8k_option_override
 
@@ -1264,6 +1265,8 @@ inside_ba_p (rtx op, bool strict)
   return false;
 }
 
+/* ptr sized reg + sign extended int reg */
+
 bool
 bx_p (rtx op, bool strict)
 {
@@ -1272,12 +1275,47 @@ bx_p (rtx op, bool strict)
   return inside_bx_p (XEXP (op, 0), strict);
 }
 
+/* ptr sized reg + 16 bit index 
+ only ok in huge mode if reg is sp */
+
+/* Also accept unallocated pseudo-regs here, since these will become
+   references to sp plus an offset.  */
+/* Also accept (MEM (PLUS (pseudo) CONST_INT)), since the pseudo will
+   always be allocated to a PTR reg.  */
+
 bool
 ba_p (rtx op, bool strict)
 {
-  if (GET_CODE (op) != MEM)
+  return (GET_CODE (op) == MEM && inside_ba_p (XEXP (op, 0), strict))
+          || (reload_in_progress && GET_CODE (op) == REG
+              && REGNO (op) >= FIRST_PSEUDO_REGISTER)
+          || (reload_in_progress && GET_CODE (op) == MEM
+              && GET_CODE (XEXP (op, 0)) == PLUS
+              && GET_CODE (XEXP (XEXP (op, 0), 0)) == REG
+              && REGNO (op) >= FIRST_PSEUDO_REGISTER
+              && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT
+              && (INTVAL (XEXP (XEXP (op, 0), 1)) & 0x1) == 0);
+}
+
+bool
+da_p (rtx op, bool strict)
+{
+  if (GET_CODE(op) != MEM)
     return false;
-  return inside_ba_p (XEXP (op, 0), strict);
+  return DATA_REF_P(INSIDE(op,0));
+}
+
+/* Also accept (MEM (pseudo)) here during reload, because the pseudo is
+   guaranteed to be reloaded into a PTR reg.  */
+
+bool
+ir_p (rtx op, bool strict)
+{
+  if (GET_CODE(op) != MEM)
+    return false;
+  return (REG_P (XEXP (op, 0)) && REG_OK_FOR_BASE_P (XEXP (op, 0))) 
+         || (reload_in_progress && GET_CODE (XEXP (op, 0)) == REG
+             && REGNO (op) >= FIRST_PSEUDO_REGISTER);
 }
 
 bool

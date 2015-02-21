@@ -82,20 +82,20 @@
 
 (define_constraint "Q"
   ""
-  (match_test "IR_P(op) || DA_P(op)"))
+  (match_test "ir_p (op, false) || da_p (op, false)"))
 
 (define_constraint "R"
   ""
-  (match_test "X_P(op)"))
+  (match_test "x_p (op, false)"))
 
 (define_constraint "T"
   ""
-  (match_test "BA_P(op)"))
+  (match_test "ba_p (op, false)"))
 
 (define_constraint "S"
   ""
-  (ior (match_test "BA_P(op)")
-       (match_test "BX_P(op)")))
+  (ior (match_test "ba_p (op, false)")
+       (match_test "bx_p (op, false)")))
 
 ;;  #define REG_CLASS_FROM_LETTER(C)		\
 ;;    ((C) == 'u' ? QI_REGS  : 			\

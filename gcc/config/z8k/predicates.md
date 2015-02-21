@@ -52,7 +52,7 @@
 (define_predicate "ir_operand"
   (and (match_code "mem")
        (match_test "! BADSUBREG (op)")
-       (match_test "IR_P (op)")))
+       (match_test "ir_p (op, false)")))
 
 (define_predicate "da_operand"
   (match_code "mem")
@@ -60,7 +60,7 @@
   if (GET_CODE (op) == SUBREG)
     op = SUBREG_REG (op);
 
-  return DA_P (op);
+  return da_p (op, false);
 })
 
 ;; 16 bit Reg  + pointer sized bit index

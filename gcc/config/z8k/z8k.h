@@ -700,46 +700,7 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define INSIDE(op,side) XEXP(op,side)
 
-/* Also accept (MEM (pseudo)) here during reload, because the psuedo is
-   guaranteed to be reloaded into a PTR reg.  */
-#define IR_P(op) 							\
-  (GET_CODE (op) == MEM							\
-   && ((REG_P (XEXP (op, 0)) && REG_OK_FOR_BASE_P (XEXP (op, 0)))	\
-       || (reload_in_progress && GET_CODE (XEXP (op, 0)) == REG		\
-	   && REGNO (op) >= FIRST_PSEUDO_REGISTER)))
-	  
-
 #define INSIDE_DA_P(op) DATA_REF_P(op)
-
-#define DA_P(op)				\
-	((GET_CODE(op) == MEM) && DATA_REF_P(INSIDE(op,0)))
-
-
-#define X_P(op) x_p(op, IS_STRICT)
-
-/* ptr sized reg + 16 bit index 
- only ok in huge mode if reg is sp */
-
-/* Also accept unallocated pseudo-regs here, since these will become
-   references to sp plus an offset.  */
-/* Also accept (MEM (PLUS (pseudo) CONST_INT)), since the pseudo will
-   always be allocated to a PTR reg.  We can not do this in inside_ba_p,
-   because then it would affect GO_IF_LEGITIMATE_ADDRESS which is wrong.  */
-#define BA_P(op)					\
-  (ba_p (op, IS_STRICT)					\
-   || (reload_in_progress && GET_CODE (op) == REG	\
-       && REGNO (op) >= FIRST_PSEUDO_REGISTER)		\
-   || (reload_in_progress && GET_CODE (op) == MEM	\
-       && GET_CODE (XEXP (op, 0)) == PLUS		\
-       && GET_CODE (XEXP (XEXP (op, 0), 0)) == REG	\
-       && REGNO (op) >= FIRST_PSEUDO_REGISTER		\
-       && GET_CODE (XEXP (XEXP (op, 0), 1)) == CONST_INT \
-       && (INTVAL (XEXP (XEXP (op, 0), 1)) & 0x1) == 0))
-
-/* ptr sized reg + sign extended int reg */
-
-
-#define BX_P(op) bx_p(op, IS_STRICT)
 
 
 
