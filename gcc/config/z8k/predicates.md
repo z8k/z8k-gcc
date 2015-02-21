@@ -65,7 +65,7 @@
 
 ;; 16 bit Reg  + pointer sized bit index
 (define_predicate "x_operand"
-  (and (match_operand 0 "register_operand")
+  (and (match_code "mem")
        (match_test "! BADSUBREG (op)"))
 {
   if (GET_CODE (op) == SUBREG)
