@@ -48,6 +48,9 @@ int io (int, int);
 void z8k_output_external (const char *);
 void z8k_declare_function_name (FILE *, const char *, tree);
 
+bool z8k_regno_ok_for_base_p (int, bool);
+bool z8k_regno_ok_for_index_p (int, bool);
+
 void print_operand (FILE *, rtx, int);
 void print_operand_address (FILE *, rtx);
 

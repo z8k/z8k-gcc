@@ -2441,5 +2441,48 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
   return false;
 }
 
+/* These assume that REGNO is a hard or pseudo reg number.
+   They give nonzero only if REGNO is a hard reg of the suitable class
+   or a pseudo reg currently allocated to a suitable hard reg.
+   Since they use reg_renumber, they are safe only once reg_renumber
+   has been allocated, which happens in local-alloc.c.  */
+
+bool
+z8k_regno_ok_for_index_p (int regno, bool strict_p)
+{
+  if (regno < FIRST_PSEUDO_REGISTER)
+    {
+      if (!strict_p)
+	return true;
+
+      if (!reg_renumber)
+	return false;
+	
+      regno = reg_renumber[regno];
+    }
+  
+  return regno < FIRST_PSEUDO_REGISTER && regno >= 0;
+}
+
+/* It's ok for a base reg if it's in a hard reg which is not 0 or it
+   will be renumbered on the way out and its not -1 or 0 */
+
+bool
+z8k_regno_ok_for_base_p (int regno, bool strict_p)
+{
+  if (regno < FIRST_PSEUDO_REGISTER && regno != 0)
+    {
+      if (!strict_p)
+	return true;
+
+      if (!reg_renumber)
+	return false;
+	
+      regno = reg_renumber[regno];
+    }
+  
+  return regno < FIRST_PSEUDO_REGISTER && regno > 0;
+}
+
 
 struct gcc_target targetm = TARGET_INITIALIZER;

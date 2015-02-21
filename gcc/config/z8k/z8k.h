@@ -637,17 +637,13 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
    Since they use reg_renumber, they are safe only once reg_renumber
    has been allocated, which happens in local-alloc.c.  */
 
-#define REGNO_OK_FOR_INDEX_P(REGNO) \
-	  (((REGNO) < FIRST_PSEUDO_REGISTER) \
-	    || (reg_renumber[REGNO] < FIRST_PSEUDO_REGISTER && reg_renumber[REGNO] >= 0))
+#define REGNO_OK_FOR_INDEX_P(REGNO) z8k_regno_ok_for_index_p (REGNO, true)
 
 
 /* It's ok for a base reg if it's in a hard reg which is not 0 or it
    will be renumbered on the way out and its not -1 or 0 */
 
-#define REGNO_OK_FOR_BASE_P(REGNO) \
-	  (((REGNO) < FIRST_PSEUDO_REGISTER && (REGNO) != 0 )  \
-	    || (reg_renumber[REGNO] < FIRST_PSEUDO_REGISTER && reg_renumber[REGNO] > 0))
+#define REGNO_OK_FOR_BASE_P(REGNO) z8k_regno_ok_for_base_p (REGNO, true)
  
 
 /* Maximum number of registers that can appear in a valid memory address.  */
