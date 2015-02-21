@@ -82,7 +82,7 @@
 
 (define_constraint "Q"
   ""
-  (match_test "ir_p (op, false) || da_p (op, false)"))
+  (match_test "ir_p (op) || da_p (op)"))
 
 (define_constraint "R"
   ""

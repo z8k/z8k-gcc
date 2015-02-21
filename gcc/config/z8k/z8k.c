@@ -46,6 +46,10 @@
 #include "opts.h"
 #include "z8k-protos.h"
 
+bool inside_ba_p (rtx, bool);
+bool inside_bx_p (rtx, bool);
+bool inside_x_p (rtx, bool);
+
 void z8k_asm_globalize_label (FILE *, const char *);
 void z8k_asm_trampoline_template (FILE *);
 void z8k_trampoline_init (rtx, tree, rtx);
@@ -1247,12 +1251,12 @@ inside_x_p (rtx op, bool strict)
   return false;
 }
 
-int
-inside_da_p (rtx op, int strict)
+bool
+inside_da_p (rtx op, bool strict)
 {
   if (DATA_REF_P (op))
-    return 1;
-  return 0;
+    return true;
+  return false;
 }
 
 bool
@@ -1308,9 +1312,9 @@ ba_p (rtx op, bool strict)
 }
 
 bool
-da_p (rtx op, bool strict)
+da_p (rtx op)
 {
-  if (GET_CODE(op) != MEM)
+  if (GET_CODE (op) != MEM)
     return false;
   return DATA_REF_P(INSIDE(op,0));
 }
@@ -1319,9 +1323,9 @@ da_p (rtx op, bool strict)
    guaranteed to be reloaded into a PTR reg.  */
 
 bool
-ir_p (rtx op, bool strict)
+ir_p (rtx op)
 {
-  if (GET_CODE(op) != MEM)
+  if (GET_CODE (op) != MEM)
     return false;
   return (REG_P (XEXP (op, 0)) && z8k_reg_ok_for_base_p (XEXP (op, 0))) 
           || (reload_in_progress && GET_CODE (XEXP (op, 0)) == REG
