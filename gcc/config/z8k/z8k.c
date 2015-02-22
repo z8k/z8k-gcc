@@ -332,7 +332,7 @@ cond_name_x (int code)
 
 
 /* print either an inc or an add depending upon the size of the value */
-
+/*
 static void
 incordec (FILE *file, char *n1, char *n2, int size)
 {
@@ -342,12 +342,12 @@ incordec (FILE *file, char *n1, char *n2, int size)
 	       size > 16 ? n1 : n2, size);
     }
 }
-
-
+*/
+/*
 #define frameish(x) ((x ==  FRAME_POINTER_REGNUM) || (x == FRAME_POINTER_REGNUM+1))
-
+*/
 /* return 1 if the register needs to be saved on function entry */
-
+/*
 static int
 need (int regno)
 {
@@ -358,10 +358,10 @@ need (int regno)
 	  && !call_used_regs[regno]
 	  && regno < STACK_POINTER_REGNUM
 	  && !((regno == FRAME_POINTER_REGNUM)
-	   || (regno == FRAME_POINTER_REGNUM + 1) && frame_pointer_needed));
+	  || (regno == FRAME_POINTER_REGNUM + 1) && frame_pointer_needed));
 
 }
-
+*/
 
 
 
@@ -619,12 +619,12 @@ print_operand (FILE *file, rtx x, int code)
 
 static
 int
-fill_from_options (int value, char *def, char *string, char *into, int *order)
+fill_from_options (int value, const char *def, const char *string, char *into, int *order)
 {
   int regno;
   int n = 0;
-  char *p;
-  char *list;
+  const char *p;
+  const char *list;
 
   list = p = string ? string : def;
 
@@ -1389,7 +1389,7 @@ int
 io (int from, int to)
 {
   int regs_saved;
-  int d = calc_live_regs (&regs_saved);
+  calc_live_regs (&regs_saved);
   int total_saved_regs_space = (regs_saved) * 2;
   int total_auto_space = get_frame_size ();
   int pcsize = TARGET_BIG ? 4 : 2;
@@ -1502,12 +1502,13 @@ static struct
 
 m_options[] = TARGET_SWITCHES; */
 
+/*
 static void
 output_options (FILE *file, struct options *f_options, int f_len,
 		struct options *W_options, int W_len, int pos, int max,
 		char *sep, char *indent, char *term)
 {
-/*  register int j;
+  register int j;
   extern int flag_traditional;
 
   if (optimize)
@@ -1536,10 +1537,8 @@ output_options (FILE *file, struct options *f_options, int f_len,
 	    == m_options[j].value))
       pos = output_option (file, sep, "-m", m_options[j].name,
 			   indent, pos, max);
-
-*/
-
 }
+*/
 
 void
 z8k_asm_file_start ()
@@ -1936,12 +1935,12 @@ z8k_declare_function_name (FILE *file, const char *name, tree decl)
     }
   
   /* Output the information.  */
-  fprintf (file, "! stack frame requirements for %s: %d bytes\n", name,
+  fprintf (file, "! stack frame requirements for %s: %ld bytes\n", name,
 	   (reg_count * 2 + get_frame_size ()
 	    + crtl->args.pretend_args_size));
   fprintf (file, "! register saves: %d bytes\n", reg_count * 2);
   fprintf (file, "! live registers: 0x%04x\n", live_regs_mask);
-  fprintf (file, "! automatics, spills, etc: %d bytes\n",
+  fprintf (file, "! automatics, spills, etc: %ld bytes\n",
 	   get_frame_size () - parm_size);
   fprintf (file, "! parameters: %d bytes\n", parm_size);
   fprintf (file, "! varargs flushback area: %d bytes\n",
@@ -1997,7 +1996,8 @@ z8k_expand_epilogue ()
    lifetimes.  */
 
 int
-z8k_address_cost (rtx op, enum machine_mode mode, addr_space_t as, bool speed)
+z8k_address_cost (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED,
+	addr_space_t as ATTRIBUTE_UNUSED, bool speed ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (op) == PLUS)
     {
@@ -2030,7 +2030,8 @@ int COM_POWER_OF_2 (int value)
 */
 
 rtx
-z8k_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
+z8k_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+		enum machine_mode mode ATTRIBUTE_UNUSED)
 {
 #if 0
   if (TARGET_PIC)
@@ -2160,7 +2161,7 @@ moveok (rtx *operands, enum machine_mode mode)
 
 void asm_output_ascii (FILE *file, const char *p, int size)
 {
-  int i, col;
+  int i;
 
   fprintf (asm_out_file, "\t.ascii \"");
 
@@ -2446,6 +2447,5 @@ z8k_regno_ok_for_base_p (int regno, bool strict_p)
   
   return regno < FIRST_PSEUDO_REGISTER && regno > 0;
 }
-
 
 struct gcc_target targetm = TARGET_INITIALIZER;
