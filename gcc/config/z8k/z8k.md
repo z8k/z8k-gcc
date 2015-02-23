@@ -77,7 +77,7 @@
 	(match_operand:HI 0 "r_ir_da_x_operand" "r,QR"))]
   ""
   "@
-	and	%H0,%H0	
+	and	%H0,%H0
 	test	%H0"
   [(set_attr "cond" "logcc,logcc")])
 
@@ -91,7 +91,7 @@
 	(match_operand:QI 0 "r_ir_da_x_operand" "u,QR"))]
   ""
   "@
-	andb	%Q0,%Q0	
+	andb	%Q0,%Q0
 	testb 	%Q0"
   [(set_attr "cond" "logcc,logcc")])
 
