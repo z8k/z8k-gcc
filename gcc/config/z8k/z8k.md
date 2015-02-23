@@ -407,6 +407,8 @@
 	}
       return \"ldl	%S0,%S2\;addl	%S0,%S1\";
     }
+
+  gcc_unreachable();
 }"
   [(set_attr "cond" "trashcc")])
 
@@ -456,6 +458,8 @@
 	}
       return \"ldl	%S0,%S2\;subl	%S0,%S1\";
     }
+
+  gcc_unreachable();
 }"
   [(set_attr "cond" "trashcc")])
 
@@ -886,6 +890,8 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
 	}
       return \"ldl	%S0,%S2\;addl	%S0,%S1 ! si2 - d\";
     }
+
+  gcc_unreachable();
 }"
   [(set_attr "cond" "trashcc")])
 
