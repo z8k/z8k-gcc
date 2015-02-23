@@ -704,50 +704,50 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   [(set_attr "cond" "trashcc")])
 
   
-(define_expand "movstrhi"
-  [(parallel [(set (mem:BLK (match_operand:BLK 0 "general_operand" ""))
-		   (mem:BLK (match_operand:BLK 1 "general_operand" "")))
-	      (use (match_operand:HI 2 "general_operand" ""))
-	      (use (match_operand:HI 3 "immediate_operand" ""))])]
-  "TARGET_LDIR"
-  "
-{
-  rtx dst = copy_to_mode_reg (Pmode, convert_to_mode (Pmode, XEXP (operands[0], 0), 0));
-  rtx src = copy_to_mode_reg (Pmode, convert_to_mode (Pmode, XEXP (operands[1], 0), 0));
-
-  /* if the alignment is two or more, and we're moving an even sized
-     lump of data, then we can use the ldir instruction, if not
-     then we have to use the ldrib. */
-
-  if (GET_CODE (operands[2]) == CONST_INT 
-      && (INTVAL (operands[2]) %2 == 0)
-      && (INTVAL (operands[2]) > 0)
-      && (INTVAL (operands[3]) >= 2))
-    {
-      rtx count = copy_to_mode_reg (HImode,  GEN_INT (INTVAL (operands[2]) / 2));
-
-      if (TARGET_BIG)
-	emit_insn (gen_ldir_z8001 (dst, src, count));
-      else
-	emit_insn (gen_ldir_z8002 (dst, src, count));
-    }
-  else 
-    {
-      rtx count = copy_to_mode_reg (HImode, operands[2]);
-      rtx zero_count = gen_label_rtx ();
-      emit_insn (gen_tsthi (operands[2]));
-      emit_jump_insn (gen_beq (zero_count));
-
-      if (TARGET_BIG)
-	emit_insn (gen_ldirb_z8001 (dst, src, count));
-      else
-	emit_insn (gen_ldirb_z8002 (dst, src, count));
-      emit_label (zero_count);
-    }
-  emit_move_insn (src, src);
-  DONE;
-}
-")
+;;(define_expand "movstrhi"
+;;  [(parallel [(set (mem:BLK (match_operand:BLK 0 "general_operand" ""))
+;;		   (mem:BLK (match_operand:BLK 1 "general_operand" "")))
+;;	      (use (match_operand:HI 2 "general_operand" ""))
+;;	      (use (match_operand:HI 3 "immediate_operand" ""))])]
+;;  "TARGET_LDIR"
+;;  "
+;;{
+;;  rtx dst = copy_to_mode_reg (Pmode, convert_to_mode (Pmode, XEXP (operands[0], 0), 0));
+;;  rtx src = copy_to_mode_reg (Pmode, convert_to_mode (Pmode, XEXP (operands[1], 0), 0));
+;;
+;;  /* if the alignment is two or more, and we're moving an even sized
+;;     lump of data, then we can use the ldir instruction, if not
+;;     then we have to use the ldrib. */
+;;
+;;  if (GET_CODE (operands[2]) == CONST_INT 
+;;      && (INTVAL (operands[2]) %2 == 0)
+;;      && (INTVAL (operands[2]) > 0)
+;;      && (INTVAL (operands[3]) >= 2))
+;;    {
+;;      rtx count = copy_to_mode_reg (HImode,  GEN_INT (INTVAL (operands[2]) / 2));
+;;
+;;      if (TARGET_BIG)
+;;	emit_insn (gen_ldir_z8001 (dst, src, count));
+;;      else
+;;	emit_insn (gen_ldir_z8002 (dst, src, count));
+;;    }
+;;  else 
+;;    {
+;;      rtx count = copy_to_mode_reg (HImode, operands[2]);
+;;      rtx zero_count = gen_label_rtx ();
+;;      emit_insn (gen_tsthi (operands[2]));
+;;      emit_jump_insn (gen_beq (zero_count));
+;;
+;;      if (TARGET_BIG)
+;;	emit_insn (gen_ldirb_z8001 (dst, src, count));
+;;      else
+;;	emit_insn (gen_ldirb_z8002 (dst, src, count));
+;;      emit_label (zero_count);
+;;    }
+;;  emit_move_insn (src, src);
+;;  DONE;
+;;}
+;;")
 
 
 ;; ----------------------------------------------------------------------
@@ -1713,93 +1713,16 @@ if (GET_CODE (operands[2]) != CONST_INT
 ;; Branches
 ;; ----------------------------------------------------------------------
 
+(define_mode_iterator CCMOV [QI HI SI])
 
-(define_expand "ble"
-  [(set (pc)
-	(if_then_else (le (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bleu"
-  [(set (pc)
-	(if_then_else (leu (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bge"
-  [(set (pc)
-	(if_then_else (ge (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bgeu"
-  [(set (pc)
-	(if_then_else (geu (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "blt"
-  [(set (pc)
-	(if_then_else (lt (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bltu"
-  [(set (pc)
-	(if_then_else (ltu (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bgt"
-  [(set (pc)
-	(if_then_else (gt (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bgtu"
-  [(set (pc)
-	(if_then_else (gtu (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "beq"
-  [(set (pc)
-	(if_then_else (eq (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
-		      (pc)))]
-  ""
-  "")
-
-(define_expand "bne"
-  [(set (pc)
-	(if_then_else (ne (cc0)
-			  (const_int 0))
-		      (label_ref (match_operand 0 "" ""))
+(define_expand "cbranch<mode>4"
+  [(set (cc0) (compare
+	       (match_operand:CCMOV 1 "nonimmediate_operand")
+	       (match_operand:CCMOV 2 "general_operand")))
+   (set (pc)
+	(if_then_else (match_operator 0 "ordered_comparison_operator"
+		       [(cc0) (const_int 0)])
+		      (label_ref (match_operand 3 "" ""))
 		      (pc)))]
   ""
   "")
