@@ -319,10 +319,6 @@ extern int hard_regno_mode_ok[FIRST_PSEUDO_REGISTER];
    We put 4 early, so that it will be more likely to be used for
    register allocation, and thus less likely to be used for reloads.  */
 #define REG_ALLOC_ORDER { 4,5,2,3,0,1,6,7,8,9,10,11,12,13,14,15,16,17}
-/* ??? In order to make sure that we can allocate 2 group 4 reloads, put
-   regs 2-9 last.  */
-/* ??? Hack, see reload1.c.  */
-#define RELOAD_ALLOC_ORDER { 0,1,12,13,2,3,4,5,6,7,8,9,10,11,14,15,16,17}
 
 #define GENERAL_REGS ALL_REGS
 enum reg_class { NO_REGS, SQI_REGS, QI_REGS,NOTQI_REGS, SP_REGS, PTR_REGS, SP_QI_REGS, ALL_REGS, LIM_REG_CLASSES };
