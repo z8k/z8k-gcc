@@ -28,6 +28,7 @@ int emit_move (rtx [], enum machine_mode, int);
 void z8k_expand_prologue ();
 void z8k_expand_epilogue ();
 
+void z8k_notice_update_cc (rtx, rtx)
 const char * output_move64 (rtx, rtx);
 
 void maybe_need_resflg (rtx);

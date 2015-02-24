@@ -2448,4 +2448,54 @@ z8k_regno_ok_for_base_p (int regno, bool strict_p)
   return regno < FIRST_PSEUDO_REGISTER && regno > 0;
 }
 
+void
+z8k_notice_update_cc (rtx exp, rtx insn)
+{
+  enum attr_cond type = get_attr_cond (insn);
+  switch (type)
+    {
+    case COND_NOTRASHCC:
+      if (GET_CODE (exp) == SET)
+	{
+	  if (cc_status.value1
+	      && reg_overlap_mentioned_p (SET_DEST (exp),
+					  cc_status.value1))
+	    cc_status.value1 = 0;
+	  if (cc_status.value2
+	      && reg_overlap_mentioned_p (SET_DEST (exp),
+					  cc_status.value2))
+	    cc_status.value2 = 0;
+	}
+      break;
+    case COND_TRASHCC:
+      CC_STATUS_INIT;
+      break;
+    case COND_SETCC:
+      if (GET_CODE (exp) == SET)
+	{
+	  cc_status.flags = 0;
+	  cc_status.value1 = XEXP (exp, 0);
+	  cc_status.value2 = XEXP (exp, 1);
+	}
+      else
+	CC_STATUS_INIT;
+      break;
+    case COND_LOGCC:
+      if (GET_CODE (exp) == SET)
+	{
+	  cc_status.flags = CC_NO_OVERFLOW;
+	  cc_status.value1 = XEXP (exp, 0);
+	  cc_status.value2 = XEXP (exp, 1);
+	}
+      else
+	CC_STATUS_INIT;
+      break;
+    case COND_SETREVCC:
+      cc_status.flags = CC_REVERSED;
+      cc_status.value1 = XEXP (exp, 0);
+      cc_status.value2 = XEXP (exp, 1);
+      break;
+    }
+}
+
 struct gcc_target targetm = TARGET_INITIALIZER;
