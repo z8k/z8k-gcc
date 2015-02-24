@@ -18,6 +18,9 @@ You should have received a copy of the GNU General Public License
 along with GNU CC; see the file COPYING.  If not, write to
 the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
+#ifndef GCC_Z8K_H
+#define GCC_Z8K_H
+
 #define TARGET_Z8000
 #define TARGET_SEGMENTED 1
 
@@ -1261,3 +1264,5 @@ do { DP { fprintf (asm_out_file, "\t.def\t");		\
 	      SDB_DELIM, SDB_DELIM, SDB_DELIM); } } while (0)
 
 /*int saved_reg_on_stack_hack;*/
+
+#endif /* GCC_Z8K_H */
