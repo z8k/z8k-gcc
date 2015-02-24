@@ -368,29 +368,29 @@ need (int regno)
 /* return non zero if the rtx supplied can be used as an effective
    address calculation */
 
-static int 
+static bool 
 address (rtx op)
 {
   if (GET_CODE (op) == CONST)
     op = XEXP (op, 0);
 
   if (TARGET_SMALL && GET_CODE (op) == CONST_INT)
-    return 1;
+    return true;
 
   if (GET_MODE (op) != Pmode)
-    return 0;
+    return false;
 
   /* + (symbol_ref, foo) is address */
   if (GET_CODE (op) == PLUS && address (XEXP (op, 0)))
-    return 1;
+    return true;
 
   if (GET_CODE (op) == SYMBOL_REF)
-    return 1;
+    return true;
 
   if (GET_CODE (op) == LABEL_REF)
-    return 1;
+    return true;
 
-  return 0;
+  return false;
 }
 
 /*
@@ -935,24 +935,24 @@ z8k_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
 
 /* return 1 if there isn't anything tricky to do */
 
-int
+bool
 null_epilogue ()
 {
   int i;
 
   if (!reload_completed)
-    return 0;
+    return false;
   if (frame_pointer_needed)
-    return 0;
+    return false;
   if (get_frame_size ())
-    return 0;
+    return false;
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     {
       if (df_regs_ever_live_p (i) && !call_used_regs[i])
-	return 0;
+	return false;
     }
 
-  return 1;
+  return true;
 }
 
 struct rtx_def *
@@ -1018,7 +1018,7 @@ simple (enum machine_mode mode, rtx operand)
   return operand;
 }
 
-int
+bool
 emit_move (rtx operands[], enum machine_mode mode, int extra)
 {
   extern int reload_in_progress;
@@ -1027,7 +1027,7 @@ emit_move (rtx operands[], enum machine_mode mode, int extra)
   int need_copy = 0;
 
   if (rtx_equal_p (operand0, operand1))
-    return 1;
+    return true;
   if (!reload_in_progress)
     {
       /* Can't push a long immediate */
@@ -1071,11 +1071,11 @@ emit_move (rtx operands[], enum machine_mode mode, int extra)
       rtx temp = gen_reg_rtx (mode);
       emit_insn (gen_rtx_SET (VOIDmode, temp, operand1));
       emit_insn (gen_rtx_SET (VOIDmode, operand0, temp));
-      return 1;
+      return true;
     }
   operands[0] = operand0;
   operands[1] = operand1;
-  return 0;
+  return false;
 }
 
 /* True if X is a hard reg that can be used as a base reg
@@ -1272,10 +1272,10 @@ x_p (rtx op, bool strict)
   return inside_x_p (XEXP (op, 0), strict);
 }
 
-int
+bool
 move_check (rtx operands[], enum machine_mode mode)
 {
-  return 1;
+  return true;
 }
 
 int
@@ -1341,14 +1341,14 @@ disp_p (rtx X)
 }
 
 
-int
+bool
 ptr_reg (rtx x)
 {
   if (reload_completed || !TARGET_HUGE)
-    return 1;
+    return true;
   if (STACK_REGISTER (REGNO (x)))
-    return 1;
-  return 0;
+    return true;
+  return false;
 }
 
 
@@ -2049,7 +2049,7 @@ z8k_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return x;
 }
 
-int
+bool
 BADSUBREG (rtx op)
 {
   /* Can't subreg someting like subreg:HI (mem:SI (plus: reg reg) )
@@ -2063,7 +2063,7 @@ BADSUBREG (rtx op)
 
       /* Subreg of a reg is ok too */
       if (GET_CODE (SUBREG_REG (op)) == REG)
-	return 0;
+	return false;
 
       inside = XEXP (op, 0);
       if (GET_CODE (inside) == MEM)
@@ -2071,7 +2071,7 @@ BADSUBREG (rtx op)
 
 	  /* Can't do paradoxical subregs in memory */
 	  if (GET_MODE_SIZE (GET_MODE (op)) > GET_MODE_SIZE (GET_MODE (inside)))
-	    return 1;
+	    return true;
 	  /* Ok if want the low part of a mem(symbol_ref), mem(reg), or mem(reg+k)
 
 	   since they can have indexing added to them */
@@ -2080,24 +2080,24 @@ BADSUBREG (rtx op)
 	  if (inside_da_p (inside, 0)
 	      || inside_x_p (inside, 0)
 	      || inside_ba_p (inside, 0))
-	    return 0;
-	  return 1;
+	    return false;
+	  return true;
 	  /* If you want the high part (the low addressed bit) then the other modes
 	   work too */
 	/*  if (SUBREG_WORD (op) == 0 && 0)
 	    {
 
 	      if (inside_bx_p (inside, 0))
-		return 0;
+		return false;
 
 	    }
 	*/ /* XXX */
 
 
-	  return 1;
+	  return true;
 	}
     }
-  return 0;
+  return false;
 }
 
 /* Return the register class of a scratch register needed to copy IN into
@@ -2138,24 +2138,24 @@ z8k_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx in,
 }
 
 
-int
+bool
 moveok (rtx *operands, enum machine_mode mode)
 {
   if (r_operand (operands[0], mode) && r_ir_da_x_ba_bx_operand (operands[1], mode))
-    return 1;
+    return true;
   if (ir_da_x_ba_bx_operand (operands[0], mode) && r_operand (operands[1], mode))
-    return 1;
+    return true;
   if (push_operand (operands[0], mode) && r_im_ir_da_x_operand (operands[1], mode))
-    return 1;
+    return true;
   if (r_ir_da_x_operand (operands[0], mode) && pop_operand (operands[1], mode))
-    return 1;
+    return true;
   if (mode == HImode || mode == QImode)
     if (r_ir_da_x_operand (operands[0], mode) && immediate_operand (operands[1], mode))
-      return 1;
+      return true;
   if (mode == SImode || mode == SFmode || mode == PSImode)
     if (r_da_operand (operands[0], mode) && immediate_operand (operands[1], mode))
-      return 1;
-  return 0;
+      return true;
+  return false;
 }
 
 

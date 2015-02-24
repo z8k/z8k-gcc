@@ -21,14 +21,14 @@ extern int saved_reg_on_stack_hack;
 
 
 
-int moveok (rtx *, enum machine_mode);
-int null_epilogue ();
+bool moveok (rtx *, enum machine_mode);
+bool null_epilogue ();
 int COM_POWER_OF_2 (int);
-int emit_move (rtx [], enum machine_mode, int);
+bool emit_move (rtx [], enum machine_mode, int);
 void z8k_expand_prologue ();
 void z8k_expand_epilogue ();
 
-void z8k_notice_update_cc (rtx, rtx)
+void z8k_notice_update_cc (rtx, rtx);
 const char * output_move64 (rtx, rtx);
 
 void maybe_need_resflg (rtx);
@@ -66,4 +66,4 @@ int load_source_file (const char *);
 
 
 
-int BADSUBREG (rtx);
+bool BADSUBREG (rtx);
