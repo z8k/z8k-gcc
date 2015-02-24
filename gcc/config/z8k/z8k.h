@@ -67,14 +67,9 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #define TARGET_STD		(target_flags & TARGET_STD_BIT)
 */
 
-
-/*
 #define TARGET_DEFAULT \
- (TARGET_REGPARMS_BIT|TARGET_STRUCT_BYTE_ALIGN_BIT|\
-  TARGET_TYPE64_BIT|TARGET_TYPED64_BIT)
-*/
-#define TARGET_DEFAULT 0
-
+    (TARGET_REGPARMS|TARGET_STRUCT_BYTE_ALIGN|TARGET_TYPE64|TARGET_TYPED64)
+    
 /* -m options which take arguments */
 /*
 char *call_used_option;
