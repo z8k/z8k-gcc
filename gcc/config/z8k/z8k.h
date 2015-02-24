@@ -1216,6 +1216,4 @@ do { DP { fprintf (asm_out_file, "\t.def\t");		\
 	      "%s\t.val\t.%s\t.scl\t-1%s\t.endef\n",	\
 	      SDB_DELIM, SDB_DELIM, SDB_DELIM); } } while (0)
 
-/*int saved_reg_on_stack_hack;*/
-
 #endif /* GCC_Z8K_H */
