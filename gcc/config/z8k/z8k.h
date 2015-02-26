@@ -656,10 +656,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
 
 #define TARGET_LEGITIMATE_CONSTANT_P z8k_legitimate_constant_p
 
-#define INSIDE(op,side) XEXP(op,side)
-
-#define INSIDE_DA_P(op) DATA_REF_P(op)
-
 
 
 /* true if the value may be used as a displacement (-32768<=x<=32767)
@@ -668,10 +664,6 @@ extern char arg_regs[FIRST_PSEUDO_REGISTER];
    mode */
 
 #define DISP_P(X) disp_p(X)
-
-#define DATA_REF_P_1(X) data_ref_p_1(X)
-#define DATA_REF_P(X) data_ref_p(X)
-
 
 
 /* Define this if some processing needs to be done immediately before

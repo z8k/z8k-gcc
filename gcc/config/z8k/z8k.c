@@ -1186,7 +1186,7 @@ inside_x_p (rtx op, bool strict)
 bool
 inside_da_p (rtx op, bool strict)
 {
-  if (DATA_REF_P (op))
+  if (data_ref_p (op))
     return true;
   return false;
 }
@@ -1248,7 +1248,7 @@ da_p (rtx op)
 {
   if (GET_CODE (op) != MEM)
     return false;
-  return DATA_REF_P(INSIDE(op,0));
+  return data_ref_p (XEXP (op,0));
 }
 
 /* Also accept (MEM (pseudo)) here during reload, because the pseudo is
@@ -1327,7 +1327,7 @@ data_ref_p (rtx X)
   if (TARGET_PIC)
     return 0;
   if (TARGET_BIG)
-    return (DATA_REF_P_1 (X) || (GET_CODE (X) == CONST && DATA_REF_P_1 (XEXP (X, 0))));
+    return (data_ref_p_1 (X) || (GET_CODE (X) == CONST && data_ref_p_1 (XEXP (X, 0))));
   return CONSTANT_P (X);
 }
 
@@ -1337,7 +1337,7 @@ int
 disp_p (rtx X)
 {
   return
-    ((GET_CODE (X) == CONST_INT && (((unsigned) INTVAL (X) + 0xffff) < 0x1ffff)) || (!TARGET_HUGE && DATA_REF_P (X)));
+    ((GET_CODE (X) == CONST_INT && (((unsigned) INTVAL (X) + 0xffff) < 0x1ffff)) || (!TARGET_HUGE && data_ref_p (X)));
 }
 
 
@@ -2390,7 +2390,7 @@ z8k_legitimate_address_p (enum machine_mode mode, rtx operand, bool strict)
 {
   if (REG_P (operand) && z8k_reg_ok_for_base_p (operand))
     return true;
-  if (INSIDE_DA_P (operand)) return true;
+  if (data_ref_p (operand)) return true;
   if (inside_ba_p (operand, strict)) return true;
   if (GET_CODE(operand) == PRE_DEC
     && mode == HImode
