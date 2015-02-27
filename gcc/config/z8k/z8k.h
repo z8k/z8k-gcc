@@ -55,17 +55,6 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #define ASM_SPEC "%{mlist:-ahld}"
 
 
-/* Run-time compilation parameters selecting different hardware subsets.  */
-/*
-#define TARGET_STD_FRAME_BIT  	(1<<20)
-#define TARGET_STD_FRAME	(target_flags & TARGET_STD_FRAME_BIT)
-
-#define TARGET_STD_RET_BIT  	(1<<21)
-#define TARGET_STD_RET		(target_flags & TARGET_STD_RET_BIT)
-
-#define TARGET_STD_BIT  	(1<<22)
-#define TARGET_STD		(target_flags & TARGET_STD_BIT)
-*/
 
 #define TARGET_DEFAULT \
     (TARGET_REGPARMS|TARGET_STRUCT_BYTE_ALIGN|TARGET_TYPE64|TARGET_TYPED64)
