@@ -69,10 +69,6 @@ mldir
 Target Report Mask(LDIR)
 Enable ldir instructions
 
-mdjnz
-Target Report Mask(DJNZ)
-Enable djnz instructions
-
 mstdfp
 Target Report Mask(STD_FRAME)
 

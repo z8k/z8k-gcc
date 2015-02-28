@@ -2160,7 +2160,7 @@ else return \"! p5\";
 		      (pc)))
    (set (match_dup 0)
 	(plus:HI (match_dup 0) (const_int -1)))] /* XXX HI was SI */
-  "TARGET_DJNZ"
+  ""
   "*
   if (get_attr_length (insn) == 2 && GET_CODE (operands[0]) == REG)
     return \"djnz	%H0,%l1\";
@@ -2180,7 +2180,7 @@ else return \"! p5\";
 	 (pc)))
    (set (match_dup 0)
 	(plus:HI (match_dup 0) (const_int -1)))]
-  "TARGET_DJNZ"
+  ""
   "*
   if (get_attr_length (insn) == 2 && GET_CODE(operands[0]) == REG)
     return \"djnz	%H0,%l1\";
