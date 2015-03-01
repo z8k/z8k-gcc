@@ -37,6 +37,10 @@
 (include "predicates.md")
 
 
+(define_mode_iterator QIHI [QI HI])
+(define_mode_iterator SIPSI [SI PSI])
+(define_mode_iterator ALL [QI HI SI PSI])
+
 (define_attr "type" "branch,foo,def,djnz,invisible,return" 
   (const_string "def"))
 
@@ -151,28 +155,6 @@
 	cp	%H1,%H0"
   [(set_attr "cond" "setcc,setcc,setrevcc")])
 
-(define_expand "cmphi"
-  [
-   (set (cc0)
-	(compare (match_operand:HI 0 "r_ir_da_x_operand" "")
-		 (match_operand:HI 1 "r_im_ir_da_x_operand" "")))]
-  ""
-  "{
-    /* Can only cope with r,[r|im|ir|da|x] or [ir|da|x],im */
-	
-    if (immediate_operand (operands[1], HImode))
-      {
-	if (!r_ir_da_x_operand (operands[0], HImode))
-	  {
-	    operands[0] = force_reg (HImode, operands[0]);
-	  }
-      }
-    else if (!r_operand (operands[0], HImode)) /* XXX */
-      {
-	operands[0] = force_reg (HImode, operands[0]);
-      }
-  }")
-
 
 (define_insn "_cmpqi"
   [(set (cc0)
@@ -183,84 +165,17 @@
   "cpb	%Q0,%Q1"
   [(set_attr "cond" "setcc")])
 
-(define_expand "cmpqi"
+
+(define_insn "*cmp<mode>"
   [(set (cc0)
-	(compare (match_operand:QI 0 "r_ir_da_x_operand" "u,QR")
-		 (match_operand:QI 1 "r_im_ir_da_x_operand" "uiQR,i")))]
-  ""
-  "
-    /* Can only cope with r,[r|im|ir|da|x] or [ir|da|x],im */
-	
-    if (immediate_operand (operands[1], QImode))
-      {
-	if (!r_ir_da_x_operand (operands[0], QImode))
-	  {
-	    operands[0] = force_reg (QImode, operands[0]);
-	  }
-      }
-    else if (!r_operand (operands[0], QImode))  /* XXX */
-      {
-	operands[0] = force_reg (QImode, operands[0]);
-   }")
-
-
-
-
-(define_insn ""
-  [(set (cc0)
-	(compare (match_operand:SI 0 "r_im_ir_da_x_operand" "r,iQR")
-		 (match_operand:SI 1 "r_im_ir_da_x_operand" "rQRi,r")))]
-  "r_operand(operands[0], SImode) || r_operand(operands[1], SImode)"
+	(compare (match_operand:SIPSI 0 "r_im_ir_da_x_operand" "r,iQR")
+		 (match_operand:SIPSI 1 "r_im_ir_da_x_operand" "rQRi,r")))]
+  "r_operand(operands[0], <MODE>mode) || r_operand(operands[1], <MODE>mode)"
   "@
 	cpl	%S0,%S1
 	cpl	%S1,%S0"
   [(set_attr "cond" "setcc,setrevcc")])
 
-; this instruction doesnt exist for SImode
-;(define_insn ""
-;  [(set (cc0)
-;	(compare (match_operand:SI 0 "r_da_x_operand" "rQR")
-;		 (match_operand:SI 1 "immediate_operand" "i")))]
-;  ""
-;  "cpl	%S0,%S1"
-;  [(set_attr "cond" "setcc")])
-
-(define_expand "cmpsi"
-  [ (set (cc0)
-	(compare (match_operand:SI 0 "r_im_ir_da_x_operand" "")
-		 (match_operand:SI 1 "r_im_ir_da_x_operand" "")))]
-  ""
- "{
-   if (!r_operand(operands[0], SImode) 
-       && !r_operand(operands[1], SImode))
-     {
-       operands[0]  = force_reg (SImode, operands[0]);
-     }
- }")
-
-
-(define_insn ""
-  [(set (cc0)
-	(compare (match_operand:PSI 0 "r_im_ir_da_x_operand" "r,iQR")
-		 (match_operand:PSI 1 "r_im_ir_da_x_operand" "rQRi,r")))]
-  "r_operand(operands[0], PSImode) || r_operand(operands[1], PSImode)"
-  "@
-	cpl	%S0,%S1
-	cpl	%S1,%S0"
-  [(set_attr "cond" "setcc,setrevcc")])
-
-
-(define_expand "cmppsi"
-  [ (set (cc0)
-	(compare (match_operand:PSI 0 "r_im_ir_da_x_operand" "")
-		 (match_operand:PSI 1 "r_im_ir_da_x_operand" "")))]
-  ""
- "{
-   if (!r_operand(operands[0], PSImode) || r_operand(operands[1], PSImode)) 
-     {
-       operands[0] = force_reg (PSImode, operands[0]);
-     }
- }")
 
 (define_insn ""
   [(set (cc0)
@@ -1719,12 +1634,10 @@ if (GET_CODE (operands[2]) != CONST_INT
 ;; Branches
 ;; ----------------------------------------------------------------------
 
-(define_mode_iterator CCMOV [QI HI SI])
-
 (define_expand "cbranch<mode>4"
   [(set (cc0) (compare
-	       (match_operand:CCMOV 1 "nonimmediate_operand")
-	       (match_operand:CCMOV 2 "general_operand")))
+	       (match_operand:ALL 1 "register_operand")
+	       (match_operand:ALL 2 "general_operand")))
    (set (pc)
 	(if_then_else (match_operator 0 "ordered_comparison_operator"
 		       [(cc0) (const_int 0)])
