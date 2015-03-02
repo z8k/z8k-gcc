@@ -40,6 +40,7 @@
 (define_mode_iterator QIHI [QI HI])
 (define_mode_iterator SIPSI [SI PSI])
 (define_mode_iterator ALL [QI HI SI PSI])
+(define_mode_iterator DIDF [DI DF])
 
 (define_attr "type" "branch,foo,def,djnz,invisible,return" 
   (const_string "def"))
@@ -476,11 +477,11 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   "push	@%0,%H1")
 
 
-;; DI mode
+;; DI and DF modes
 
-(define_insn "_pushdi"
-  [(set (match_operand:DI 0 "push_operand" "=<")
-	(match_operand:DI 1 "r_ir_da_x_operand_for_di" "rQR"))]
+(define_insn "*push<mode>"
+  [(set (match_operand:DIDF 0 "push_operand" "=<")
+	(match_operand:DIDF 1 "r_ir_da_x_operand_for_di" "rQR"))]
   ""
   "* return output_move64(operands[0], operands[1]);"
   [(set_attr "cond" "notrashcc")])
@@ -499,46 +500,22 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
     return \"ldl	%T0,%T1\;subl	%S0,%S0\";
 }")
    
-(define_insn "_movdi2"
-  [(set (match_operand:DI 0 "r_ir_da_x_ba_operand_for_di" "=rQRT,r")
-	(match_operand:DI 1 "r_ir_da_x_ba_operand_for_di" "r,rQRT"))]
+(define_insn "*mov<mode>2"
+  [(set (match_operand:DIDF 0 "r_ir_da_x_ba_operand_for_di" "=rQRT,r")
+	(match_operand:DIDF 1 "r_ir_da_x_ba_operand_for_di" "r,rQRT"))]
   ""
   "* return output_move64(operands[0], operands[1]);"
   [(set_attr "cond" "notrashcc")])
 
-
-(define_expand "movdi"
-  [(set (match_operand:DI 0 "r_ir_da_x_ba_operand_for_di" "")
-	(match_operand:DI 1 "r_ir_da_x_ba_operand_for_di" ""))]
+(define_expand "mov<mode>"
+  [(set (match_operand:DIDF 0 "r_ir_da_x_ba_operand_for_di" "")
+	(match_operand:DIDF 1 "r_ir_da_x_ba_operand_for_di" ""))]
   ""
   "{
-	if (emit_move(operands, DImode, 0)) 
+	if (emit_move(operands, <MODE>mode, 0))
 		DONE;
   }")
 
-(define_insn ""
-  [(set (match_operand:DF 0 "push_operand" "=<")
-	(match_operand:DF 1 "r_ir_da_x_operand_for_di" "rQR"))]
-  ""
-  "* return output_move64(operands[0], operands[1]);"
-  [(set_attr "cond" "notrashcc")])
-
-(define_insn ""
-  [(set (match_operand:DF 0 "r_ir_da_x_ba_operand_for_di" "=rQRT,r")
-	(match_operand:DF 1 "r_ir_da_x_ba_operand_for_di" "r,rQRT"))]
-  ""
-  "* return output_move64 (operands[0], operands[1]);"
-  [(set_attr "cond" "notrashcc")])
-
-
-(define_expand "movdf"
-  [(set (match_operand:DF 0 "r_ir_da_x_ba_operand_for_di" "")
-	(match_operand:DF 1 "r_ir_da_x_ba_operand_for_di" ""))]
-  ""
-  "{
-	if (emit_move(operands, DFmode, 0)) 
-		DONE;
-}")
 
 
 
