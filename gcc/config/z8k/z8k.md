@@ -227,9 +227,9 @@
 ;; SI mode
 
 
-(define_insn "movsi_matcher"
-  [(set (match_operand:SI 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
-	(match_operand:SI 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
+(define_insn "mov<mode>_matcher"
+  [(set (match_operand:SIPSI 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
+	(match_operand:SIPSI 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
   "moveok(operands, SImode)"
   "@
 	xor	%I0,%I0\;ld	%H0,%I0
@@ -241,41 +241,16 @@
 	pushl	@%0,%S1"
   [(set_attr "cond" "trashcc,trashcc,notrashcc,notrashcc,notrashcc,notrashcc,notrashcc")])
 
-(define_expand "movsi"
-  [(set (match_operand:SI 0 "r_ir_da_x_ba_bx_operand" "")
-	(match_operand:SI 1 "r_im_ir_da_x_ba_bx_operand" ""))]
+(define_expand "mov<mode>"
+  [(set (match_operand:SIPSI 0 "r_ir_da_x_ba_bx_operand" "")
+	(match_operand:SIPSI 1 "r_im_ir_da_x_ba_bx_operand" ""))]
   ""
   "
-  if (!reload_in_progress && !reload_completed && !moveok(operands, SImode))
-    operands[1] = copy_to_mode_reg (SImode, operands[1]);
+  if (!reload_in_progress && !reload_completed && !moveok(operands, <MODE>mode))
+    operands[1] = copy_to_mode_reg (<MODE>mode, operands[1]);
 ")
 
 
-;; PSI mode
-
-(define_insn "movpsi_matcher"
-  [(set (match_operand:PSI 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
-	(match_operand:PSI 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
-  "moveok(operands, PSImode)"
-  "@
-	xor	%I0,%I0\;ld	%H0,%I0
-	xor	%H0,%H0\;ldk	%I0,%H1
-	ldl	%S0,%S1
-	$ldl	%S0,%S1
-	popl	%S0,@%1
-	$ldl	%S0,%S1
-	pushl	@%0,%S1"
-  [(set_attr "cond" "trashcc,trashcc,notrashcc,notrashcc,notrashcc,notrashcc,notrashcc")])
-
-(define_expand "movpsi"
-  [(set (match_operand:PSI 0 "r_ir_da_x_ba_bx_operand" "")
-	(match_operand:PSI 1 "r_im_ir_da_x_ba_bx_operand" ""))]
-  ""
-  "
-  if (!reload_in_progress && !reload_completed && !moveok(operands, PSImode))
-    operands[1] = copy_to_mode_reg (PSImode, operands[1]);
-")
- 
 (define_insn ""
   [(set (match_operand:PSI 0 "r_operand" "=r")
 	(plus:PSI (match_operand:PSI 1 "r_operand" "0")
@@ -734,18 +709,9 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
 ;  "extsb	%H0\;exts	%S0")
 
 
-(define_insn "extendhisi2"
-  [(set (match_operand:SI 0 "r_operand" "=r,r")
-	(sign_extend:SI (match_operand:HI 1 "r_ir_da_x_ba_bx_operand" "0,rQRSo")))]
-  ""
-  "@
-	exts	%S0
-	$ld	%I0,%H1\;exts	%S0")
-
-
-(define_insn "extendhipsi2"
-  [(set (match_operand:PSI 0 "r_operand" "=r,r")
-	(sign_extend:PSI (match_operand:HI 1 "r_ir_da_x_ba_bx_operand" "0,rQRSo")))]
+(define_insn "extendhi<mode>2"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r,r")
+	(sign_extend:SIPSI (match_operand:HI 1 "r_ir_da_x_ba_bx_operand" "0,rQRSo")))]
   ""
   "@
 	exts	%S0
@@ -1190,27 +1156,28 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
 
 ;; arithmetic right
 
-;; SI mode
+;; SI mode & PSI mode
 
-(define_insn ""
-  [(set (match_operand:SI 0 "r_operand" "=r")
-	(ashiftrt:SI (match_operand:SI 1 "r_operand" "0")
+(define_insn "*ashrt<mode>"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r")
+	(ashiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0")
 		     (neg:HI (match_operand:HI 2 "r_operand" "r"))))]
   ""
   "sdal	%S0,%H2"
   [(set_attr "cond" "logcc")])
 
-(define_insn ""
-  [(set (match_operand:SI 0 "r_operand" "=r")
-	(ashiftrt:SI (match_operand:SI 1 "r_operand" "0")
+(define_insn "*ashrt<mode>"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r")
+	(ashiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0")
 		     (match_operand:HI 2 "const_int_operand" "n")))]
   ""
   "sral	%S0,%2"
   [(set_attr "cond" "logcc")])
 
-(define_expand "ashrsi3"
-  [(set (match_operand:SI 0 "r_operand" "=r,r")
-	(ashiftrt:SI (match_operand:SI 1 "r_operand" "0,0")
+
+(define_expand "ashr<mode>3"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r,r")
+	(ashiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0,0")
 		     (match_operand:HI 2 "r_im_operand" "r,i")))]
   ""
   "
@@ -1221,28 +1188,28 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
 
 
 ;; logical right 
-;; SI mode
+;; SI mode & PSI mode
 
 
-(define_insn ""
-  [(set (match_operand:SI 0 "r_operand" "=r")
-	(lshiftrt:SI (match_operand:SI 1 "r_operand" "0")
+(define_insn "*lshrt<mode>"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r")
+	(lshiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0")
 		     (neg:HI (match_operand:HI 2 "r_operand" "r"))))]
   ""
   "sdll	%S0,%H2"
   [(set_attr "cond" "logcc")])
 
-(define_insn ""
-  [(set (match_operand:SI 0 "r_operand" "=r")
-	(lshiftrt:SI (match_operand:SI 1 "r_operand" "0")
+(define_insn "*lshrt<mode>"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r")
+	(lshiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0")
 		     (match_operand:HI 2 "immediate_operand" "i")))]
   ""
   "srll	%S0,%H2"
   [(set_attr "cond" "logcc")])
 
-(define_expand "lshrsi3"
-  [(set (match_operand:SI 0 "r_operand" "=r,r")
-	(lshiftrt:SI (match_operand:SI 1 "r_operand" "0,0")
+(define_expand "lshr<mode>3"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r,r")
+	(lshiftrt:SIPSI (match_operand:SIPSI 1 "r_operand" "0,0")
 		   (match_operand:HI 2 "r_im_operand" "r,i")))]
   ""
   "{
@@ -1327,85 +1294,6 @@ if (GET_CODE (operands[2]) != CONST_INT
 	|| INTVAL (operands[2]) != 1) FAIL;
 }
 ")
-
-
-
-;;
-;;
-;; PSI shifts
-
-(define_insn ""
-  [(set (match_operand:PSI 0 "r_operand" "=r")
-	(ashiftrt:PSI (match_operand:PSI 1 "r_operand" "0")
-		     (neg:HI (match_operand:HI 2 "r_operand" "r"))))]
-  ""
-  "sdal	%S0,%H2"
-  [(set_attr "cond" "logcc")])
-
-(define_insn ""
-  [(set (match_operand:PSI 0 "r_operand" "=r")
-	(lshiftrt:PSI (match_operand:PSI 1 "r_operand" "0")
-		      (match_operand:HI 2 "immediate_operand" "i")))]
-  ""
-  "srll	%S0,%H2"
-  [(set_attr "cond" "logcc")])
-
-(define_insn ""
-  [(set (match_operand:PSI 0 "r_operand" "=r")
-	(ashiftrt:PSI (match_operand:PSI 1 "r_operand" "0")
-		     (match_operand:HI 2 "const_int_operand" "n")))]
-  ""
-  "sral	%S0,%2"
-  [(set_attr "cond" "logcc")])
-
-(define_expand "ashrpsi3"
-  [(set (match_operand:PSI 0 "r_operand" "=r,r")
-	(ashiftrt:PSI (match_operand:PSI 1 "r_operand" "0,0")
-		     (match_operand:HI 2 "r_im_operand" "r,i")))]
-  ""
-  "
-{
-  if (GET_CODE (operands[2]) != CONST_INT)
-    operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
-}")
-
-
-;; logical right 
-;; PSI mode
-
-
-(define_insn ""
-  [(set (match_operand:PSI 0 "r_operand" "=r")
-	(lshiftrt:PSI (match_operand:PSI 1 "r_operand" "0")
-		     (neg:HI (match_operand:HI 2 "r_operand" "r"))))]
-  ""
-  "sdll	%S0,%H2"
-  [(set_attr "cond" "logcc")])
-
-(define_expand "lshrpsi3"
-  [(set (match_operand:PSI 0 "r_operand" "=r,r")
-	(lshiftrt:PSI (match_operand:PSI 1 "r_operand" "0,0")
-		   (match_operand:HI 2 "r_im_operand" "r,i")))]
-  ""
-  "{
-    if (GET_CODE (operands[2]) != CONST_INT)
-      operands[2] = gen_rtx_NEG (HImode, negate_rtx (HImode, operands[2]));
-   }")
-
-;; left
-;; PSI mode
-
-(define_insn "ashlpsi3"
-  [(set (match_operand:PSI 0 "r_operand" "=r,r,r,r")
-	(ashift:PSI (match_operand:PSI 1 "r_operand" "0,0,0,0")
-		   (match_operand:HI 2 "r_im_operand" "M,N,r,i")))]
-  ""
-  "@
-	addl	%S0,%S0 ! ashlpsi3
-	addl	%S0,%S0\;addl	%S0,%S0 ! ashlpsi3
-	sdal	%S0,%H2
-	slal	%S0,%H2"
-  [(set_attr "cond" "logcc")])
 
 
 ;; HI shifts
@@ -1815,14 +1703,8 @@ if (GET_CODE (operands[2]) != CONST_INT
   "ld	r0,r0	! nop"
   [(set_attr "cond" "notrashcc")])
 
-(define_insn "indirect_jump_si"
-  [(set (pc) (match_operand:SI 0 "r_operand" "v"))]
-  ""
-  "jp	@%S0"
-  [(set_attr "cond" "notrashcc")])
-
-(define_insn "indirect_jump_psi"
-  [(set (pc) (match_operand:PSI 0 "r_operand" "v"))]
+(define_insn "indirect_jump_<mode>"
+  [(set (pc) (match_operand:SIPSI 0 "r_operand" "v"))]
   ""
   "jp	@%S0"
   [(set_attr "cond" "notrashcc")])
