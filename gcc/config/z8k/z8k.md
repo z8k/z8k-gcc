@@ -808,28 +808,15 @@ if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG
   [(set_attr "cond" "setcc")])
 
 ; strange rules for adding to the sp 
-(define_insn ""
+(define_insn "*addsp<mode>"
   [(set (match_operand:HI 0 "r_operand" "=r")
 	;; this is invalid use of subreg, but this should never happen.
 	;; use truncate in situations like this. (tege)
-	(subreg:HI (plus:SI (match_operand:SI 1 "r_operand" "r")
-			    (match_operand:SI 2 "immediate_operand" "i"))
+	(subreg:HI (plus:SIPSI (match_operand:SIPSI 1 "r_operand" "r")
+			    (match_operand:SIPSI 2 "immediate_operand" "i"))
 		  1))]
   ""
   "ld	%H0,%I1\;add	%H0,%H2	! i3")
-					     
-  
-; strange rules for adding to the sp 
-(define_insn ""
-  [(set (match_operand:HI 0 "r_operand" "=r")
-	;; this is invalid use of subreg, but this should never happen.
-	;; use truncate in situations like this. (tege)
-	(subreg:HI (plus:PSI (match_operand:PSI 1 "r_operand" "r")
-			    (match_operand:PSI 2 "immediate_operand" "i"))
-		  1))]
-  ""
-  "ld	%H0,%I1\;add	%H0,%H2	! i3")
-					     
 
 
 (define_expand "addhi3"
