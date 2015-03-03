@@ -40,6 +40,7 @@
 (define_mode_iterator QIHI [QI HI])
 (define_mode_iterator SIPSI [SI PSI])
 (define_mode_iterator ALL [QI HI SI PSI])
+(define_mode_iterator SPF [SI PSI SF])
 (define_mode_iterator DIDF [DI DF])
 
 (define_attr "type" "branch,foo,def,djnz,invisible,return" 
@@ -225,13 +226,13 @@
 ")
 
 
-;; SI mode
+;; SI, PSI, & SF modes
 
 
 (define_insn "mov<mode>_matcher"
-  [(set (match_operand:SIPSI 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
-	(match_operand:SIPSI 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
-  "moveok(operands, SImode)"
+  [(set (match_operand:SPF 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
+	(match_operand:SPF 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
+  "moveok(operands, <MODE>mode)"
   "@
 	xor	%I0,%I0\;ld	%H0,%I0
 	xor	%H0,%H0\;ldk	%I0,%H1
@@ -243,8 +244,8 @@
   [(set_attr "cond" "trashcc,trashcc,notrashcc,notrashcc,notrashcc,notrashcc,notrashcc")])
 
 (define_expand "mov<mode>"
-  [(set (match_operand:SIPSI 0 "r_ir_da_x_ba_bx_operand" "")
-	(match_operand:SIPSI 1 "r_im_ir_da_x_ba_bx_operand" ""))]
+  [(set (match_operand:SPF 0 "r_ir_da_x_ba_bx_operand" "")
+	(match_operand:SPF 1 "r_im_ir_da_x_ba_bx_operand" ""))]
   ""
   "
   if (!reload_in_progress && !reload_completed && !moveok(operands, <MODE>mode))
@@ -361,35 +362,6 @@
   		   (match_operand:PSI 2 "r_im_ir_da_x_operand" "")))]
   ""
   "")
-
-;; SF  mode
-
-(define_insn "movsf_matcher"
-  [(set (match_operand:SF 0 "r_ir_da_x_ba_bx_prd_operand" "=r,r,r,r,rQR,QRS,<")
-	(match_operand:SF 1 "r_im_ir_da_x_ba_bx_poi_operand" "I,L,ri,QRS,>,r,rQR"))]
-  "moveok(operands, SFmode)"
-  "@
-	xor	%I0,%I0\;ld	%H0,%I0
-	xor	%H0,%H0\;ldk	%I0,%H1
-	ldl	%S0,%S1
-	$ldl	%S0,%S1
-	popl	%S0,@%1
-	$ldl	%S0,%S1
-	pushl	@%0,%S1"
-  [(set_attr "cond" "trashcc,trashcc,notrashcc,notrashcc,notrashcc,notrashcc,notrashcc")])
-
-(define_expand "movsf"
-  [(set (match_operand:SF 0 "r_ir_da_x_ba_bx_operand" "")
-	(match_operand:SF 1 "r_ir_da_x_ba_bx_operand" ""))]
-  ""
-  "{
-  if (!reload_in_progress && !reload_completed && !moveok(operands, SFmode))
-    operands[1] = copy_to_mode_reg (SFmode, operands[1]);
-if (!reload_in_progress && !reload_completed && GET_CODE(operands[0]) != REG 
-)
-    operands[1] = copy_to_mode_reg (SFmode, operands[1]);
-
-  }")
 
 
 
