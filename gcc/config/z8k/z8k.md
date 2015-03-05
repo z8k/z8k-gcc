@@ -75,64 +75,6 @@
 
 
 ;; ----------------------------------------------------------------------
-;; Tests
-;; ----------------------------------------------------------------------
-
-(define_insn "testhi_"
-  [(set (cc0)
-	(match_operand:HI 0 "r_ir_da_x_operand" "r,QR"))]
-  ""
-  "@
-	and	%H0,%H0
-	test	%H0"
-  [(set_attr "cond" "logcc,logcc")])
-
-(define_expand "tsthi"
-  [(set (cc0)  (match_operand:HI 0 "r_ir_da_operand" ""))]
-  ""
-  "operands[0] = force_reg (HImode, operands[0]);")
-	
-(define_insn "tstqi_"
-  [(set (cc0)
-	(match_operand:QI 0 "r_ir_da_x_operand" "u,QR"))]
-  ""
-  "@
-	andb	%Q0,%Q0
-	testb 	%Q0"
-  [(set_attr "cond" "logcc,logcc")])
-
-;(define_expand "tstqi"
-;  [(set (cc0) (match_operand:QI 0 "r_ir_da_operand" "rQ"))]
-;  ""
-; "operands[0] = force_reg (QImode, operands[0]);")
-
-(define_insn "tstsi_"
-  [(set (cc0)
-	(match_operand:SI 0 "r_ir_da_x_operand" "rQR"))]
-  ""
-  "testl 	%S0"
-  [(set_attr "cond" "logcc")])
-
-(define_expand "tstsi"
-  [(set (cc0) (match_operand:SI 0 "r_ir_da_operand" "rQR"))]
-  ""
-  "operands[0] = force_reg (SImode, operands[0]);")
-
-
-(define_insn "tstpsi_"
-  [(set (cc0)
-	(match_operand:PSI 0 "r_ir_da_x_operand" "rQR"))]
-  ""
-  "testl 	%S0"
-  [(set_attr "cond" "logcc")])
-
-(define_expand "tstpsi"
-  [(set (cc0) (match_operand:PSI 0 "r_ir_da_operand" "rQR"))]
-  ""
-  "operands[0] = force_reg (PSImode, operands[0]);")
-
-
-;; ----------------------------------------------------------------------
 ;; Compares
 ;; ----------------------------------------------------------------------
 
