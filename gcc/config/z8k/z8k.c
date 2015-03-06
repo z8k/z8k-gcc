@@ -330,7 +330,7 @@ cond_name_x (int code)
     }
 }
 
-
+/*
 static int
 need (int regno)
 {
