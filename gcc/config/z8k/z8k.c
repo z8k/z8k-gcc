@@ -331,23 +331,6 @@ cond_name_x (int code)
 }
 
 
-/* print either an inc or an add depending upon the size of the value */
-/*
-static void
-incordec (FILE *file, char *n1, char *n2, int size)
-{
-  if (size)
-    {
-      fprintf (file, "\t%s\tr15,#%d\n",
-	       size > 16 ? n1 : n2, size);
-    }
-}
-*/
-/*
-#define frameish(x) ((x ==  FRAME_POINTER_REGNUM) || (x == FRAME_POINTER_REGNUM+1))
-*/
-/* return 1 if the register needs to be saved on function entry */
-/*
 static int
 need (int regno)
 {
