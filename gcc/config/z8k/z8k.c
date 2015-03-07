@@ -746,20 +746,6 @@ z8k_option_override ()
   /* Fill in the ok modes */
 
   /* Work out the names of the registers */
-/*  for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    {
-
-      regname (i, QImode) = xstrdup ("     ");
-      sprintf (regname (i, QImode), "*QI%d", i);
-      regname (i, HImode) = xstrdup ("     ");
-      sprintf (regname (i, HImode), "*HI%d", i);
-      regname (i, SImode) = xstrdup ("     ");
-      sprintf (regname (i, SImode), "*SI%d", i);
-      regname (i, DImode) = xstrdup ("     ");
-      sprintf (regname (i, DImode), "*DI%d", i);
-    }
-*/
-
   regname (0, QImode) = "rl0";
   regname (1, QImode) = "rl1";
   regname (2, QImode) = "rl2";
