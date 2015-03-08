@@ -583,21 +583,13 @@
   ""
   [(set_attr "cond" "notrashcc")])
 
-(define_insn ""
-  [(set (match_operand:SI 0 "r_operand" "=r")
+(define_insn "*extendqi<mode>"
+  [(set (match_operand:SIPSI 0 "r_operand" "=r")
 	;; (tege) why subreg here?
-	(sign_extend:SI (subreg:HI (match_operand:QI 1 "r_operand" "0") 0)))]
+	(sign_extend:<MODE> (subreg:HI (match_operand:QI 1 "r_operand" "0") 0)))]
 
   ""
   "extsb	%H0\;exts	%S0")
-
-;(define_insn ""
-;  [(set (match_operand:PSI 0 "r_operand" "=r")
-;	;; (tege) why subreg here?
-;;n	(sign_extend:PSI (subreg:HI (match_operand:QI 1 "r_operand" "0") 0)))]
-;
-;  ""
-;  "extsb	%H0\;exts	%S0")
 
 
 (define_insn "extendhi<mode>2"
